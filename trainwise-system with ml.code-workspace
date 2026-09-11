@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../Users/loocn/Projects/trainwise-ml"
+		}
+	],
+	"settings": {
+		"python.terminal.useEnvFile": true
+	}
+}

@@ -1,0 +1,412 @@
+  /* Your existing styles remain exactly the same */
+  body {
+    background-color: #f1f5f9;
+    color: #334155;
+    overflow-x: hidden;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 16rem;
+    overflow-y: auto;
+    transition: all 0.3s;
+    z-index: 50;
+  }
+  
+  .main-content {
+    margin-left: 16rem;
+    transition: all 0.3s;
+  }
+  
+  .checkbox-custom {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .checkbox-custom:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
+  }
+  
+  .checkbox-custom:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  
+  input[type="text"], input[type="date"], textarea, select {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    border-radius: 6px;
+    background-color: white;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+  
+  input[type="text"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+  
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  th, td {
+    padding: 1rem;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border: 1px solid #e2e8f0;
+  }
+  
+  th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #1e293b;
+    position: sticky;
+    top: 0;
+  }
+  
+  td {
+    background-color: white;
+  }
+  
+  tr:hover td {
+    background-color: #f8fafc;
+  }
+  
+  .signature-line {
+    border-bottom: 1px solid #64748b;
+    min-height: 2.5rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+  
+  .signature-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: #64748b;
+    opacity: 0.3;
+  }
+  
+  .section-header {
+    position: relative;
+    padding-left: 1.5rem;
+  }
+  
+  .section-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #2563eb;
+    border-radius: 4px;
+  }
+  
+  .floating-label {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  
+  .floating-label input, .floating-label textarea, .floating-label select {
+    padding-top: 1.5rem;
+  }
+  
+  .floating-label label {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    font-size: 0.75rem;
+    color: #64748b;
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  
+  .floating-label input:focus + label,
+  .floating-label input:not(:placeholder-shown) + label,
+  .floating-label textarea:focus + label,
+  .floating-label textarea:not(:placeholder-shown) + label {
+    transform: translateY(-0.5rem) scale(0.85);
+    transform-origin: left top;
+    color: #2563eb;
+  }
+  
+  .print-only {
+    display: none;
+  }
+  
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+    
+    body {
+      background-color: white;
+      font-size: 12pt;
+      line-height: 1.2;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+    
+    .print-only {
+      display: block !important;
+    }
+    
+    main {
+      box-shadow: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    table {
+      page-break-inside: auto;
+    }
+    
+    tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+    
+    th {
+      background-color: #f8fafc !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .form-container {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .header-section {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .header-section h1 {
+      font-size: 14pt;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    
+    .header-section h2 {
+      font-size: 12pt;
+      margin: 5px 0;
+    }
+    
+    .personal-info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    
+    .personal-info-table td {
+      padding: 5px;
+      border: 1px solid #000;
+      vertical-align: top;
+    }
+    
+    .personal-info-table td:first-child {
+      font-weight: bold;
+      width: 30%;
+    }
+    
+    .development-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    
+    .development-table th, 
+    .development-table td {
+      border: 1px solid #000;
+      padding: 5px;
+      vertical-align: top;
+    }
+    
+    .development-table th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .checkbox-item {
+      margin-bottom: 5px;
+    }
+    
+    .signature-section {
+      margin-top: 20px;
+    }
+    
+    .signature-box {
+      display: inline-block;
+      width: 30%;
+      margin: 0 1%;
+      text-align: center;
+    }
+    
+    .signature-line {
+      border-bottom: 1px solid #000;
+      height: 1em;
+      margin-bottom: 5px;
+    }
+    
+    .signature-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .signature-name {
+      margin-bottom: 5px;
+    }
+    
+    .footer {
+      margin-top: 20px;
+      font-size: 10pt;
+      text-align: center;
+    }
+    
+    /* Specific styles to match the image */
+    .form-title {
+      font-family: 'Times New Roman', serif;
+      font-size: 14pt;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    
+    .university-name {
+      font-family: 'Times New Roman', serif;
+      font-size: 12pt;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    
+    .province {
+      font-family: 'Times New Roman', serif;
+      font-size: 11pt;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .section-title {
+      font-family: 'Times New Roman', serif;
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 10px 0 5px 0;
+    }
+    
+    .purpose-section {
+      margin: 10px 0;
+    }
+    
+    .purpose-item {
+      margin-left: 20px;
+    }
+    
+    .development-title {
+      font-family: 'Times New Roman', serif;
+      font-size: 11pt;
+      font-weight: bold;
+      margin: 10px 0 5px 0;
+    }
+    
+    .certification-text {
+      font-family: 'Times New Roman', serif;
+      font-size: 11pt;
+      margin: 10px 0;
+    }
+    
+    .commitment-text {
+      font-family: 'Times New Roman', serif;
+      font-size: 11pt;
+      text-align: center;
+      margin: 10px 0;
+      font-style: italic;
+    }
+    
+    .form-code {
+      font-family: 'Times New Roman', serif;
+      font-size: 10pt;
+      text-align: right;
+      margin-top: 10px;
+    }
+  }
+  
+  .submitted-form-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid #2563eb;
+  }
+  
+  .submitted-form-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .modal-backdrop.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  
+  .modal-content {
+    background-color: white;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 500px;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+  }
+  
+  .modal-backdrop.active .modal-content {
+    transform: translateY(0);
+  }

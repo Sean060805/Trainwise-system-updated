@@ -1,0 +1,138 @@
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f1f5f9;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 16rem;
+    overflow-y: auto;
+    transition: all 0.3s;
+    z-index: 50;
+  }
+  
+  .main-content {
+    margin-left: 16rem;
+    transition: all 0.3s;
+  }
+  
+  .form-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid #2563eb;
+  }
+  
+  .form-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .status-draft {
+    background-color: #e2e8f0;
+    color: #4a5568;
+  }
+  
+  .status-submitted {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+  }
+  
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .modal-backdrop.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  
+  .modal-content {
+    background-color: white;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 500px;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+  }
+  
+  .modal-backdrop.active .modal-content {
+    transform: translateY(0);
+  }
+  
+  .checkbox-custom {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .checkbox-custom:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
+  }
+  
+  .checkbox-custom:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  
+  .tab-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .tab-button.active {
+    background-color: #2563eb;
+    color: white;
+  }
+  
+  .tab-button:not(.active) {
+    background-color: #e2e8f0;
+    color: #4a5568;
+  }
+  
+  .tab-button:not(.active):hover {
+    background-color: #cbd5e1;
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  

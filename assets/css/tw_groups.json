@@ -1,0 +1,388 @@
+[
+  {
+    "id": 1,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#3b82f6', secondary: '#2563eb', accent: '#3b82f6',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CTE_admin\\CTE_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 2,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#65a30d', secondary: '#4d7c0f', accent: '#65a30d',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CONAH_admin\\CONAH_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 3,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#4c1d95', secondary: '#3b0f7a', accent: '#4c1d95',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COL_admin\\COL_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 4,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#2563eb', secondary: '#1d4ed8', accent: '#2563eb',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COF_admin\\COF_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 5,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#065f46', secondary: '#047857', accent: '#065f46',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COE_admin\\COE_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 6,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#b91c1c', secondary: '#991b1b', accent: '#b91c1c',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CIT_admin\\CIT_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 7,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#9f1239', secondary: '#731c1c', accent: '#9f1239',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CIHTM_admin\\CHMT_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 8,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#ec4899', secondary: '#db2777', accent: '#ec4899',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CFND_admin\\CFND_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 9,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#2c5282', secondary: '#1e3a5f', accent: '#2c5282',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CCJE_admin\\CCJE_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 10,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5', secondary: '#4338ca', accent: '#6366f1',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            gold: '#D4A843', 'gold-light': '#E8C96E', 'gold-soft': '#F5E6C8',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CCS_admin\\CCS_Training_Demand.php",
+      "CCS_admin\\CCS_Assessment Form.php"
+    ]
+  },
+  {
+    "id": 11,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#d97706', secondary: '#b45309', accent: '#d97706',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CBAA_admin\\CBAA_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 12,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#6d28d9', secondary: '#5b21b6', accent: '#6d28d9',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CAS_admin\\CAS_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 13,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#16a34a', secondary: '#15803d', accent: '#16a34a',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CA_admin\\CA_Training_Demand.php"
+    ]
+  },
+  {
+    "id": 14,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            cteblue:   '#3b82f6',\n            'cteblue-light': '#60a5fa',\n            'cteblue-soft':  '#eff6ff',\n            cteyellow: '#fbbf24',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CTE_admin\\CTE_Assessment_Form.php",
+      "CTE_admin\\CTE_Individual_Development_Plan_Form.php",
+      "CTE_admin\\cte_eval.php"
+    ]
+  },
+  {
+    "id": 15,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#65a30d', secondary: '#4d7c0f', accent: '#84cc16',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            green: '#65a30d', 'green-light': '#84cc16', 'green-soft': '#f0fdf4',\n            gold: '#ca8a04', 'gold-light': '#eab308', 'gold-soft': '#fef3c7',\n            dark: '#1f2937', 'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CONAH_admin\\CONAH_Assessment Form.php",
+      "CONAH_admin\\CONAH_Individual_Development_Plan_Form.php",
+      "CONAH_admin\\conah_eval.php"
+    ]
+  },
+  {
+    "id": 16,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            colviolet: '#4c1d95',\n            'colviolet-light': '#6d28d9',\n            'colviolet-soft':  '#f5f3ff',\n            colgold:   '#daa520',\n            'colgold-light': '#e8c96e',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COL_admin\\COL_Assessment_Form.php"
+    ]
+  },
+  {
+    "id": 17,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#2563eb', secondary: '#1d4ed8', accent: '#3b82f6',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            blue: '#2563eb', 'blue-light': '#3b82f6', 'blue-soft': '#dbeafe',\n            dark: '#1f2937', 'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COF_admin\\COF_Assessment Form.php",
+      "COF_admin\\COF_Individual_Development_Plan_Form.php",
+      "COF_admin\\cof_eval.php"
+    ]
+  },
+  {
+    "id": 18,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#065f46', secondary: '#047857', accent: '#059669',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            green: '#065f46', 'green-light': '#059669', 'green-soft': '#d1fae5',\n            grey: '#6b7280', 'grey-light': '#9ca3af', 'grey-soft': '#f3f4f6',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COE_admin\\COE_Assessment Form.php",
+      "COE_admin\\COE_Individual_Development_Plan_Form.php",
+      "COE_admin\\coe_eval.php"
+    ]
+  },
+  {
+    "id": 19,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            citred:    '#b91c1c',\n            'citred-light': '#dc2626',\n            'citred-soft':  '#fef2f2',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CIT_admin\\CIT_Assessment_Form.php",
+      "CIT_admin\\CIT_Individual_Development_Plan_Form.php",
+      "CIT_admin\\cit_eval.php"
+    ]
+  },
+  {
+    "id": 20,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#4f46e5', secondary: '#4338ca', accent: '#6366f1',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            maroon: '#9f1239', 'maroon-light': '#be123c', 'maroon-soft': '#fdf2f8',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CIHTM_admin\\CHMT_Assessment Form.php",
+      "CIHTM_admin\\CHMT_Individual_Development_Plan_Form.php",
+      "CIHTM_admin\\chmt_eval.php"
+    ]
+  },
+  {
+    "id": 21,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#ec4899', secondary: '#db2777', accent: '#f472b6',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            pink: '#ec4899', 'pink-light': '#f472b6', 'pink-soft': '#fce7f3',\n            white: '#ffffff', 'white-soft': '#fdf2f8',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CFND_admin\\CFND_Assessment Form.php",
+      "CFND_admin\\CFND_Individual_Development_Plan_Form.php",
+      "CFND_admin\\cfnd_eval.php"
+    ]
+  },
+  {
+    "id": 22,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#1e3a5f', secondary: '#16283f', accent: '#2c5282',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            green: '#1e3a5f', 'green-light': '#4a7ba6', 'green-soft': '#dbeafe',\n            brown: '#92702a', 'brown-light': '#b8902f', 'brown-soft': '#fef3c7',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CCJE_admin\\CCJE_Assessment Form.php",
+      "CCJE_admin\\CCJE_Individual_Development_Plan_Form.php",
+      "CCJE_admin\\ccje_eval.php"
+    ]
+  },
+  {
+    "id": 23,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#d97706', secondary: '#b45309', accent: '#f59e0b',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            gold: '#f59e0b', 'gold-light': '#fbbf24', 'gold-soft': '#fef3c7',\n            dark: '#1f2937', 'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CBAA_admin\\CBAA_Assessment Form.php",
+      "CBAA_admin\\CBAA_Individual_Development_Plan_Form.php",
+      "CBAA_admin\\cbaa_eval.php"
+    ]
+  },
+  {
+    "id": 24,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#6d28d9', secondary: '#5b21b6', accent: '#7c3aed',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            purple: '#6d28d9', 'purple-light': '#8b5cf6', 'purple-soft': '#ede9fe',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CAS_admin\\CAS_Assessment Form.php",
+      "CAS_admin\\CAS_Individual_Development_Plan_Form.php",
+      "CAS_admin\\cas_eval.php"
+    ]
+  },
+  {
+    "id": 25,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#16a34a', secondary: '#15803d', accent: '#22c55e',\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\n            info: '#0284c7', surface: '#ffffff',\n            green: '#16a34a', 'green-light': '#4ade80', 'green-soft': '#dcfce7',\n            brown: '#a16207', 'brown-light': '#ca8a04', 'brown-soft': '#fef3c7',\n          },\n          fontFamily: {\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CA_admin\\CA_Assessment Form.php",
+      "CA_admin\\CA_Individual_Development_Plan_Form.php",
+      "CA_admin\\ca_eval.php"
+    ]
+  },
+  {
+    "id": 26,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            colviolet: '#4c1d95',\n            'colviolet-light': '#6d28d9',\n            'colviolet-soft':  '#f5f3ff',\n            colgold:   '#daa520',\n            'colgold-light': '#e8c96e',\n            'colgold-soft':  '#fefce8',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COL_admin\\COL_Individual_Development_Plan_Form.php"
+    ]
+  },
+  {
+    "id": 27,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            gold:      '#4f46e5',\n            'gold-light': '#818cf8',\n            'gold-soft':  '#eef2ff',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "CCS_admin\\CCS_Individual_Development_Plan_Form.php",
+      "CCS_admin\\ccs_eval.php"
+    ]
+  },
+  {
+    "id": 28,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4c1d95',\n            secondary: '#3b0f7a',\n            accent:    '#6d28d9',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            colviolet: '#4c1d95',\n            'colviolet-light': '#6d28d9',\n            'colviolet-soft':  '#f5f3ff',\n            colgold:   '#daa520',\n            'colgold-light': '#e8c96e',\n            'colgold-soft':  '#fefce8',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "COL_admin\\col_eval.php"
+    ]
+  },
+  {
+    "id": 29,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            cteblue:   '#3b82f6',\n            'cteblue-light': '#60a5fa',\n            'cteblue-soft':  '#eff6ff',\n            cteyellow: '#fbbf24',\n            'cteyellow-light': '#fcd34d',\n            'cteyellow-soft':  '#fffbeb',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CTE_admin\\CTE.php"
+    ]
+  },
+  {
+    "id": 30,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#1f2937',\n            secondary: '#374151',\n            accent:    '#65a30d',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            green:     '#65a30d',\n            'green-light': '#84cc16',\n            'green-soft':  '#f0fdf4',\n            gold:      '#ca8a04',\n            'gold-light': '#eab308',\n            'gold-soft':  '#fef3c7',\n            dark:      '#1f2937',\n            'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CONAH_admin\\CONAH.php"
+    ]
+  },
+  {
+    "id": 31,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            colviolet: '#4c1d95',\n            'colviolet-light': '#6d28d9',\n            'colviolet-soft':  '#f5f3ff',\n            colgold:   '#daa520',\n            'colgold-light': '#e8c96e',\n            'colgold-soft':  '#fefce8',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "COL_admin\\COL.php"
+    ]
+  },
+  {
+    "id": 32,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#2563eb',\n            secondary: '#1d4ed8',\n            accent:    '#3b82f6',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            blue:      '#2563eb',\n            'blue-light': '#3b82f6',\n            'blue-soft':  '#dbeafe',\n            dark:      '#1f2937',\n            'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "COF_admin\\COF.php"
+    ]
+  },
+  {
+    "id": 33,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#065f46',\n            secondary: '#047857',\n            accent:    '#059669',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            green:     '#065f46',\n            'green-light': '#059669',\n            'green-soft':  '#d1fae5',\n            grey:      '#6b7280',\n            'grey-light': '#9ca3af',\n            'grey-soft':  '#f3f4f6',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "COE_admin\\COE.php"
+    ]
+  },
+  {
+    "id": 34,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            citred:    '#b91c1c',\n            'citred-light': '#dc2626',\n            'citred-soft':  '#fef2f2',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CIT_admin\\CIT.php"
+    ]
+  },
+  {
+    "id": 35,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            maroon:    '#9f1239',\n            'maroon-light': '#be123c',\n            'maroon-soft':  '#fdf2f8',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CIHTM_admin\\CHMT.php"
+    ]
+  },
+  {
+    "id": 36,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#ec4899',\n            secondary: '#db2777',\n            accent:    '#f472b6',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            pink:      '#ec4899',\n            'pink-light': '#f472b6',\n            'pink-soft':  '#fce7f3',\n            white:     '#ffffff',\n            'white-soft': '#fdf2f8',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CFND_admin\\CFND.php"
+    ]
+  },
+  {
+    "id": 37,
+    "configText": "{\r\n      theme: {\r\n        extend: {\r\n          colors: {\r\n            primary: '#1e3a5f', secondary: '#16283f', accent: '#2c5282',\r\n            ink: '#0f172a', muted: '#64748b', line: '#e2e8f0',\r\n            success: '#059669', warning: '#d97706', danger: '#e11d48',\r\n            info: '#0284c7', surface: '#ffffff',\r\n            green: '#1e3a5f', 'green-light': '#4a7ba6', 'green-soft': '#dbeafe',\r\n            brown: '#92702a', 'brown-light': '#b8902f', 'brown-soft': '#fef3c7',\r\n          },\r\n          fontFamily: {\r\n            'sans': ['Inter', 'system-ui', 'sans-serif'],\r\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\r\n            'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],\r\n          },\r\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\r\n          boxShadow: {\r\n            'card': '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\r\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\r\n            'pop': '0 12px 32px -8px rgba(15,23,42,0.18)',\r\n          },\r\n        }\r\n      }\r\n    }",
+    "files": [
+      "CCJE_admin\\CCJE.php"
+    ]
+  },
+  {
+    "id": 38,
+    "configText": "{\r\n      theme: {\r\n        extend: {\r\n          colors: {\r\n            primary:   '#4f46e5',\r\n            secondary: '#4338ca',\r\n            accent:    '#6366f1',\r\n            ink:       '#0f172a',\r\n            muted:     '#64748b',\r\n            line:      '#e2e8f0',\r\n            success:   '#059669',\r\n            warning:   '#d97706',\r\n            danger:    '#e11d48',\r\n            info:      '#0284c7',\r\n            surface:   '#ffffff',\r\n            gold:       '#D4A843',\r\n            'gold-light': '#E8C96E',\r\n            'gold-soft':  '#F5E6C8',\r\n          },\r\n          fontFamily: {\r\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\r\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\r\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\r\n          },\r\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\r\n          boxShadow: {\r\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\r\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\r\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\r\n          },\r\n        }\r\n      }\r\n    }",
+    "files": [
+      "CCS_admin\\CCS.php"
+    ]
+  },
+  {
+    "id": 39,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#d97706',\n            secondary: '#b45309',\n            accent:    '#f59e0b',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            gold:      '#f59e0b',\n            'gold-light': '#fbbf24',\n            'gold-soft':  '#fef3c7',\n            dark:      '#1f2937',\n            'dark-soft': '#374151',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CBAA_admin\\CBAA.php"
+    ]
+  },
+  {
+    "id": 40,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#6d28d9',\n            secondary: '#5b21b6',\n            accent:    '#7c3aed',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            purple:     '#6d28d9',\n            'purple-light': '#8b5cf6',\n            'purple-soft':  '#ede9fe',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CAS_admin\\CAS.php"
+    ]
+  },
+  {
+    "id": 41,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#16a34a',\n            secondary: '#15803d',\n            accent:    '#22c55e',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n            green:     '#16a34a',\n            'green-light': '#4ade80',\n            'green-soft':  '#dcfce7',\n            brown:     '#a16207',\n            'brown-light': '#ca8a04',\n            'brown-soft':  '#fef3c7',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n          boxShadow: {\n            'card':  '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\n            'hover': '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\n            'pop':   '0 12px 32px -8px rgba(15,23,42,0.18)',\n          },\n        }\n      }\n    }",
+    "files": [
+      "CA_admin\\CA.php"
+    ]
+  },
+  {
+    "id": 42,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#1A4B8C',\n            'primary-dark': '#0F3460',\n            secondary: '#0D6B4D',\n            'secondary-dark': '#084A34',\n            accent: '#D4A843',\n            gold: '#D4A843',\n            'gold-light': '#E8C96E',\n            success: '#0D6B4D',\n            warning: '#F59E0B',\n            danger: '#DC3545',\n            info: '#3B82F6',\n            royal: '#1A4B8C',\n            'royal-2': '#0F3460',\n            forest: '#0D6B4D',\n            'forest-2': '#084A34',\n            brass: '#D4A843',\n            'brass-strong': '#B8922A',\n            'brass-soft': '#F5E6C8',\n          },\n          fontFamily: {\n            'poppins': ['Inter', 'sans-serif'],\n            'display': ['Fraunces', 'serif'],\n            'eyebrow': ['\"Space Grotesk\"', 'sans-serif'],\n          },\n          boxShadow: {\n            'custom': '0 4px 20px rgba(15, 24, 48, 0.08)',\n            'custom-hover': '0 10px 32px rgba(15, 24, 48, 0.14)',\n          },\n          borderRadius: {\n            'xl': '1rem',\n            '2xl': '1.5rem',\n          },\n          animation: {\n            'fade-in': 'fadeIn 0.5s ease-in-out',\n            'slide-up': 'slideUp 0.3s ease-out',\n            'fade-up': 'fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',\n          }\n        }\n      }\n    }",
+    "files": [
+      "training_recommendations.php"
+    ]
+  },
+  {
+    "id": 43,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary:   '#4f46e5',\n            secondary: '#4338ca',\n            accent:    '#6366f1',\n            ink:       '#0f172a',\n            muted:     '#64748b',\n            line:      '#e2e8f0',\n            success:   '#059669',\n            warning:   '#d97706',\n            danger:    '#e11d48',\n            info:      '#0284c7',\n            surface:   '#ffffff',\n          },\n          fontFamily: {\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\n          },\n          borderRadius: { DEFAULT: '12px', 'button': '10px' },\n        }\n      }\n    }",
+    "files": [
+      "Assessment Form.php",
+      "Individual_Development_Plan_Form.php",
+      "Evaluation_Form.php"
+    ]
+  },
+  {
+    "id": 44,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#1A4B8C',\n            'primary-dark': '#0F3460',\n            secondary: '#0D6B4D',\n            'secondary-dark': '#084A34',\n            accent: '#D4A843',\n            gold: '#D4A843',\n            'gold-light': '#E8C96E',\n            'gold-soft': '#F5E6C8',\n            success: '#0D6B4D',\n            warning: '#F59E0B',\n            danger: '#DC3545',\n            info: '#3B82F6',\n            royal: '#1A4B8C',\n            'royal-2': '#0F3460',\n            forest: '#0D6B4D',\n            'forest-2': '#084A34',\n            cream: '#FDF8F0',\n            'cream-dim': '#F5EDDF',\n          },\n          fontFamily: {\n            'poppins': ['Poppins', 'sans-serif'],\n          },\n          boxShadow: {\n            'custom': '0 4px 20px rgba(15, 24, 48, 0.08)',\n            'custom-hover': '0 8px 30px rgba(15, 24, 48, 0.12)',\n          },\n          borderRadius: {\n            'xl': '1rem',\n            '2xl': '1.5rem',\n          },\n          animation: {\n            'fade-in': 'fadeIn 0.5s ease-in-out',\n            'slide-up': 'slideUp 0.3s ease-out',\n            'pulse-gentle': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',\n          }\n        }\n      }\n    }",
+    "files": [
+      "profile.php"
+    ]
+  },
+  {
+    "id": 45,
+    "configText": "{\n      theme: {\n        extend: {\n          fontFamily: {\n            sans: ['Inter', 'sans-serif'],\n            display: ['Fraunces', 'serif'],\n            eyebrow: ['\"Space Grotesk\"', 'sans-serif'],\n          },\n          colors: {\n            primary: '#1A4B8C',\n            'primary-dark': '#0F3460',\n            secondary: '#0D6B4D',\n            'secondary-dark': '#084A34',\n            danger: '#DC3545',\n            success: '#0D6B4D',\n            warning: '#F59E0B',\n            info: '#3B82F6',\n            royal: '#1A4B8C',\n            'royal-2': '#0F3460',\n            forest: '#0D6B4D',\n            gold: '#D4A843',\n            'gold-light': '#E8C96E',\n            cream: '#FDF8F0',\n            slate: '#5B7288',\n          },\n          borderRadius: {\n            none: '0px',\n            sm: '4px',\n            DEFAULT: '8px',\n            md: '12px',\n            lg: '16px',\n            xl: '20px',\n            '2xl': '24px',\n            '3xl': '32px',\n            full: '9999px',\n            button: '8px',\n          },\n          animation: {\n            'fade-in': 'fadeIn 0.5s ease-in-out',\n            'slide-up': 'slideUp 0.5s ease-out',\n            'slide-down': 'slideDown 0.5s ease-out',\n            'slide-left': 'slideLeft 0.5s ease-out',\n            'slide-right': 'slideRight 0.5s ease-out',\n            'bounce-in': 'bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)',\n            'flip': 'flip 0.6s ease-in-out',\n            'zoom-in': 'zoomIn 0.5s ease-out',\n            'rotate-in': 'rotateIn 0.6s ease-out',\n            'logo-rise': 'logoRise 0.5s ease-out',\n          },\n          keyframes: {\n            fadeIn: {\n              '0%': { opacity: '0' },\n              '100%': { opacity: '1' },\n            },\n            slideUp: {\n              '0%': { transform: 'translateY(50px)', opacity: '0' },\n              '100%': { transform: 'translateY(0)', opacity: '1' },\n            },\n            slideDown: {\n              '0%': { transform: 'translateY(-50px)', opacity: '0' },\n              '100%': { transform: 'translateY(0)', opacity: '1' },\n            },\n            slideLeft: {\n              '0%': { transform: 'translateX(50px)', opacity: '0' },\n              '100%': { transform: 'translateX(0)', opacity: '1' },\n            },\n            slideRight: {\n              '0%': { transform: 'translateX(-50px)', opacity: '0' },\n              '100%': { transform: 'translateX(0)', opacity: '1' },\n            },\n            bounceIn: {\n              '0%': { transform: 'scale(0.3)', opacity: '0' },\n              '50%': { transform: 'scale(1.05)', opacity: '0.8' },\n              '70%': { transform: 'scale(0.9)', opacity: '0.9' },\n              '100%': { transform: 'scale(1)', opacity: '1' },\n            },\n            flip: {\n              '0%': { transform: 'perspective(400px) rotateY(90deg)', opacity: '0' },\n              '40%': { transform: 'perspective(400px) rotateY(-10deg)' },\n              '70%': { transform: 'perspective(400px) rotateY(10deg)' },\n              '100%': { transform: 'perspective(400px) rotateY(0)', opacity: '1' },\n            },\n            zoomIn: {\n              '0%': { transform: 'scale(0.5)', opacity: '0' },\n              '100%': { transform: 'scale(1)', opacity: '1' },\n            },\n            rotateIn: {\n              '0%': { transform: 'rotate(-180deg) scale(0.3)', opacity: '0' },\n              '100%': { transform: 'rotate(0) scale(1)', opacity: '1' },\n            },\n            logoRise: {\n              '0%': { transform: 'translateY(0) scale(1)' },\n              '100%': { transform: 'translateY(-30px) scale(1.1)' },\n            },\n          },\n        },\n      },\n    }",
+    "files": [
+      "index.php"
+    ]
+  },
+  {
+    "id": 46,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#1A4B8C',\n            'primary-dark': '#0F3460',\n            secondary: '#0D6B4D',\n            'secondary-dark': '#084A34',\n            accent: '#D4A843',\n            gold: '#D4A843',\n            'gold-light': '#E8C96E',\n            success: '#0D6B4D',\n            warning: '#F59E0B',\n            danger: '#DC3545',\n            info: '#3B82F6',\n            royal: '#1A4B8C',\n            'royal-2': '#0F3460',\n            forest: '#0D6B4D',\n            'forest-2': '#084A34',\n            brass: '#D4A843',\n            'brass-strong': '#B8922A',\n            'brass-soft': '#F5E6C8',\n          },\n          fontFamily: {\n            'poppins': ['Inter', 'sans-serif'],\n            'display': ['Fraunces', 'serif'],\n            'eyebrow': ['\"Space Grotesk\"', 'sans-serif'],\n          },\n          boxShadow: {\n            'custom': '0 4px 20px rgba(15, 24, 48, 0.08)',\n            'custom-hover': '0 10px 32px rgba(15, 24, 48, 0.14)',\n          },\n          borderRadius: {\n            'xl': '1rem',\n            '2xl': '1.5rem',\n          },\n          animation: {\n            'fade-in': 'fadeIn 0.5s ease-in-out',\n            'slide-up': 'slideUp 0.3s ease-out',\n            'pulse-gentle': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',\n            'fade-up': 'fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',\n          }\n        }\n      }\n    }",
+    "files": [
+      "user_page.php"
+    ]
+  },
+  {
+    "id": 47,
+    "configText": "{\n  theme: {\n    extend: {\n      colors: {\n        primary: '#1A4B8C',\n        'primary-dark': '#0F3460',\n        secondary: '#0D6B4D',\n        'secondary-dark': '#084A34',\n        accent: '#D4A843',\n        gold: '#D4A843',\n        'gold-light': '#E8C96E',\n        'gold-soft': '#F5E6C8',\n        success: '#0D6B4D',\n        warning: '#F59E0B',\n        danger: '#DC3545',\n        info: '#3B82F6',\n        royal: '#1A4B8C',\n        'royal-2': '#0F3460',\n        forest: '#0D6B4D',\n        'forest-2': '#084A34',\n        cream: '#FDF8F0',\n        'cream-dim': '#F5EDDF',\n      },\n      borderRadius: {\n        'xl': '1rem',\n        '2xl': '1.5rem',\n      },\n      fontFamily: {\n        'poppins': ['Poppins', 'sans-serif'],\n      },\n      boxShadow: {\n        'custom': '0 4px 20px rgba(15, 24, 48, 0.08)',\n        'custom-hover': '0 8px 30px rgba(15, 24, 48, 0.12)',\n        'soft': '0 4px 20px rgba(0, 0, 0, 0.08)',\n        'focus': '0 0 0 3px rgba(26, 75, 140, 0.2)',\n        'card': '0 2px 8px rgba(0, 0, 0, 0.1)'\n      },\n      animation: {\n        'fade-in': 'fadeIn 0.5s ease-in-out',\n        'slide-up': 'slideUp 0.3s ease-out',\n      }\n    }\n  }\n}",
+    "files": [
+      "Individual_Development_Plan.php"
+    ]
+  },
+  {
+    "id": 48,
+    "configText": "{\r\n      theme: {\r\n        extend: {\r\n          colors: {\r\n            // Brand accent (indigo) + slate neutrals.\r\n            primary:   '#4f46e5',\r\n            secondary: '#4338ca',\r\n            accent:    '#6366f1',\r\n            ink:       '#0f172a',\r\n            muted:     '#64748b',\r\n            line:      '#e2e8f0',\r\n            success:   '#059669',\r\n            warning:   '#d97706',\r\n            danger:    '#e11d48',\r\n            info:      '#0284c7',\r\n            surface:   '#ffffff',\r\n          },\r\n          fontFamily: {\r\n            'sans':    ['Inter', 'system-ui', 'sans-serif'],\r\n            'display': ['Plus Jakarta Sans', 'Inter', 'sans-serif'],\r\n            'mono':    ['JetBrains Mono', 'ui-monospace', 'monospace'],\r\n          },\r\n          borderRadius: {\r\n            DEFAULT: '12px',\r\n            'button': '10px',\r\n          },\r\n          boxShadow: {\r\n            'card':   '0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -16px rgba(15,23,42,0.20)',\r\n            'hover':  '0 1px 2px rgba(15,23,42,0.04), 0 16px 36px -20px rgba(15,23,42,0.30)',\r\n            'pop':    '0 12px 32px -8px rgba(15,23,42,0.18)',\r\n          },\r\n        }\r\n      }\r\n    }",
+    "files": [
+      "audit_log.php",
+      "reports_analytics.php",
+      "training_pipeline.php",
+      "admin_page.php"
+    ]
+  },
+  {
+    "id": 49,
+    "configText": "{\n            theme: {\n                extend: {\n                    colors: {\n                        primary: '#1A4B8C',\n                        'primary-dark': '#0F3460',\n                        secondary: '#5B7288',\n                        accent: '#D4A843'\n                    },\n                    borderRadius: {\n                        'button': '8px'\n                    }\n                }\n            }\n        }",
+    "files": [
+      "training_program_impact_assessment_form.php"
+    ]
+  },
+  {
+    "id": 50,
+    "configText": "{\n            theme: {\n                extend: {\n                    colors: {\n                        primary: '#3b82f6',\n                        secondary: '#64748b'\n                    },\n                    borderRadius: {\n                        'button': '8px'\n                    }\n                }\n            }\n        }",
+    "files": [
+      "CCJE_admin\\training_program_impact_assessment_form.php"
+    ]
+  },
+  {
+    "id": 51,
+    "configText": "{\n      theme: {\n        extend: {\n          colors: {\n            primary: '#6366f1',\n            secondary: '#818cf8',\n            success: '#10b981',\n            warning: '#f59e0b',\n            danger: '#ef4444',\n            info: '#3b82f6'\n          },\n          borderRadius: {\n            DEFAULT: '8px',\n            'button': '8px'\n          }\n        }\n      }\n    }",
+    "files": [
+      "submissions.php"
+    ]
+  }
+]

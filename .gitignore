@@ -1,0 +1,22 @@
+# Real database credentials - see db_credentials.example.php for the template.
+# ISO 25010 Security audit (2026-09-06): keeps the live DB password out of
+# version control now that it's been split out of config.php.
+db_credentials.php
+
+# PHP error log (config.php points ini_set('error_log', ...) here)
+php-errors.log
+
+# Node deps for the Tailwind CLI build (see assets/css/README.md)
+node_modules/
+
+# 2026-09-12 - real employee data (profile photos, IDP signatures, training
+# proof certificates for real accounts, not test data). Never belongs in a
+# public repo - RA 10173 Data Privacy Act, same standard the TAM
+# questionnaire itself cites. Upload endpoints already self-heal the
+# directory with mkdir() on first use, so nothing needs a placeholder here.
+uploads/
+
+# Real HR employee roster (names, departments) - not project material, and
+# not something to hand to a public repo. Rest of docs/ (paper drafts,
+# manuscript chapters, TNA summaries) is fine - it's your own work.
+docs/List of Employees August 2026.pdf

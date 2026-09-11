@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comments</title>
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#818cf8'
+          },
+          borderRadius: {
+            'none': '0px',
+            'sm': '4px',
+            DEFAULT: '8px',
+            'md': '12px',
+            'lg': '16px',
+            'xl': '20px',
+            '2xl': '24px',
+            '3xl': '32px',
+            'full': '9999px',
+            'button': '8px'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+
+<body>
+<div class="flex h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white shadow-sm">
+    <div class="h-full flex flex-col">
+      <div class="p-6 flex items-center">
+        <!-- Logo Image -->
+        <img src="images/lspu-logo.png" alt="Logo" class="w-10 h-10 mr-2">
+        <!-- Text Logo -->
+        <a href="user_page.php" class="text-lg font-semibold text-primary">Training Needs Assessment</a>
+      </div>
+      <nav class="flex-1 px-4">
+        <div class="space-y-1">
+          <a href="user_page.php" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-md bg-primary/5 text-primary">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+              <i class="ri-dashboard-line"></i>
+            </div>
+            Dashboard
+          </a>
+          <a href="profile.html" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+              <i class="ri-user-line"></i>
+            </div>
+            Profile
+          </a>
+          <a href="assessment.html" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+              <i class="ri-book-line"></i>
+            </div>
+            Assessment Form
+          </a>
+        </div>
+      </nav>
+      <div class="p-4">
+        <a href="index.php" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50">
+          <div class="w-5 h-5 flex items-center justify-center mr-3">
+            <i class="ri-logout-box-line"></i>
+          </div>
+          Sign Out
+        </a>        
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 p-4 bg-gray-100">
+    <div class="bg-white px-6 py-4 rounded shadow-sm w-full">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-semibold text-gray-700">Comments</h3>
+        <div class="w-6 h-6 flex items-center justify-center text-primary">
+          <i class="ri-user-follow-line ri-sm"></i>
+        </div>
+      </div>
+      <p class="text-sm text-gray-600 mb-2">Leave a comment or suggestion:</p>
+      <textarea id="commentText"
+        class="w-full border border-gray-300 rounded-md p-2 text-sm resize-none mb-3"
+        rows="2" placeholder="Write your comment..."></textarea>
+      <button id="submitComment" class="bg-primary text-white px-4 py-2 rounded-button hover:bg-secondary transition text-sm">
+        Submit
+      </button>
+    </div>
+
+    <h2 class="mt-8 text-lg font-semibold">All Comments:</h2>
+    <div id="commentsList" class="space-y-4 mt-4">
+      <!-- Comments will be dynamically loaded here -->
+    </div>
+  </main>
+
+  <!-- Back to Dashboard Button -->
+  <a href="user_page.php" class="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-button shadow-md hover:bg-secondary transition duration-200">
+    <i class="ri-arrow-left-line mr-2"></i>Back to Dashboard
+  </a>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  // Function to load comments
+  function loadComments() {
+    $.ajax({
+      url: 'load_comments.php', // Get comments from the server
+      method: 'GET',
+      success: function(response) {
+        const comments = JSON.parse(response);
+        let commentsHtml = '';
+        comments.forEach(comment => {
+          commentsHtml += `
+            <div class="border p-4 rounded-lg">
+              <p class="text-sm text-gray-600">${comment.comment_text}</p>
+              <small class="text-xs text-gray-500">Posted on: ${comment.created_at}</small>
+            </div>
+          `;
+        });
+        $('#commentsList').html(commentsHtml);
+      }
+    });
+  }
+
+  // Load comments when the page is ready
+  $(document).ready(function() {
+    loadComments();
+
+    // Submit comment using AJAX
+    $('#submitComment').click(function() {
+      const commentText = $('#commentText').val();
+      if (commentText) {
+        $.ajax({
+          url: 'submit_comment.php', // Submit comment to the server
+          method: 'POST',
+          data: { comment_text: commentText },
+          success: function(response) {
+            const result = JSON.parse(response);
+            alert(result.message); // Show response message
+
+            if (result.status === 'success') {
+              loadComments(); // Reload comments after successful submission
+              $('#commentText').val(''); // Clear the comment field
+            }
+          }
+        });
+      } else {
+        alert('Please enter a comment!');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+POST:
+Array
+(
+    [training_history] => [{"date":"2025-07-04","start_time":"03:00","end_time":"05:00","duration":"2 hours","training":"sample","venue":"sample"}]
+    [desired_skills] => []
+    [comments] => 
+)
+
+SESSION:
+Array
+(
+    [user_id] => 74
+    [name] => YOICHI
+    [email] => isagii@gmail.com
+    [role] => user
+    [profile_name] => YOICHI Borjal
+    [profile_educationalAttainment] => Doctorate Degree (Completed)
+    [profile_specialization] => BS Information Technology
+    [profile_designation] => Instructor I
+    [profile_department] => CTE
+    [profile_yearsInLSPU] => 13
+    [profile_teaching_status] => Non Teaching
+    [profile_image_data] => 
+    [profile_first_name] => YOICHI
+    [profile_last_name] => Borjal
+)

@@ -1,0 +1,23 @@
+Array
+(
+    [csrf_token] => 0ae00cc02a84894642c79c13042d43acb7a139b16681bd19933910d693e9c611
+    [print_training_data] => [{"date":"2025-08-06","start_time":"13:34","end_time":"14:34","duration":"1 hour","training":"sample","venue":"sample"}]
+    [print_desired_skills] => sa
+    [print_comments] => sa
+    [training_history] => Array
+        (
+            [row-1754455522771] => Array
+                (
+                    [date] => 2025-08-06
+                    [start_time] => 13:34
+                    [end_time] => 14:34
+                    [duration] => 1 hour
+                    [training] => sample
+                    [venue] => sample
+                )
+
+        )
+
+    [desired_skills] => sa
+    [comments] => sa
+)

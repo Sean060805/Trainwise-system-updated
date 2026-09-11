@@ -1,0 +1,39 @@
+function printProfile() {
+  const name = document.getElementById("name").value;
+  const educationalAttainment = document.getElementById("educationalAttainment").value;
+  const specialization = document.getElementById("specialization").value;
+  const designation = document.getElementById("designation").value;
+  const department = document.getElementById("department").value;
+  const yearsInLSPU = document.getElementById("yearsInLSPU").value;
+  const teachingStatus = document.querySelector('input[name="teaching_status"]:checked')?.nextElementSibling.textContent;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>Printable Profile</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { color: #6366f1; }
+        p { margin-bottom: 10px; }
+      </style>
+    </head>
+    <body>
+      <h2>Profile Information</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Highest Educational Attainment:</strong> ${educationalAttainment}</p>
+      <p><strong>Specialization:</strong> ${specialization}</p>
+      <p><strong>Present Designation:</strong> ${designation}</p>
+      <p><strong>Department:</strong> ${department}</p>
+      <p><strong>Years in LSPU:</strong> ${yearsInLSPU}</p>
+      <p><strong>Status:</strong> ${teachingStatus}</p>
+      <script>
+        window.onload = function() {
+          window.print();
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}

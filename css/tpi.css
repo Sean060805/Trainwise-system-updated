@@ -1,0 +1,69 @@
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9fafb;
+        }
+        .form-container {
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .form-field {
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .form-field:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            outline: none;
+        }
+        .radio-container input[type="radio"] {
+            display: none;
+        }
+        .radio-container label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .radio-container input[type="radio"]:checked + label {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .signature-pad {
+            border: 1px dashed #e5e7eb;
+            background-color: #f9fafb;
+        }
+        @media (max-width: 768px) {
+            .assessment-grid {
+                grid-template-columns: 1fr;
+            }
+            .rating-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+        .signature-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .signature-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .upload-btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+        }
+        .clear-btn {
+            background-color: #e5e7eb;
+            color: #333;
+            border: none;
+        }

@@ -1,0 +1,33 @@
+# ISO 25010 Security audit (2026-09-06): CSRF hardening.
+#
+# Most of this app's ~100 state-changing endpoints are hit via same-origin
+# JS fetch() calls with hand-built request bodies, not plain <form> POSTs -
+# retrofitting a CSRF token into every one of those call sites individually
+# would be a large, high-regression-risk change across dozens of files with
+# no way to visually re-verify every page in this environment. The primary,
+# much lower-risk fix that closes the actual cross-site attack (a malicious
+# external page silently submitting a request using the victim's ambient
+# session cookie) is SameSite on the session cookie: with SameSite=Lax,
+# browsers simply never attach this app's session cookie to a request that
+# originated from another site, regardless of whether that endpoint checks
+# a token. This has to be set here (not in a PHP ini_set() call) because
+# several pages call session_start() as their very first line, before
+# config.php ever runs - .htaccess applies before any PHP executes, so it's
+# the only place that's guaranteed to win the race on every entry point.
+#
+# cookie_secure is intentionally NOT forced on - this app is tested over
+# plain http://localhost during development, and forcing Secure would make
+# every cookie silently stop being sent there. Turn it on once the
+# production deployment is confirmed to be HTTPS-only.
+<IfModule mod_php.c>
+    php_value session.cookie_samesite "Lax"
+    php_flag session.cookie_httponly On
+</IfModule>
+<IfModule mod_php7.c>
+    php_value session.cookie_samesite "Lax"
+    php_flag session.cookie_httponly On
+</IfModule>
+<IfModule mod_php8.c>
+    php_value session.cookie_samesite "Lax"
+    php_flag session.cookie_httponly On
+</IfModule>
