@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -138,12 +139,9 @@ $recipients = $recipientsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $recipientsStmt->close();
 
 $message = 'HR updated the training details for "' . $demand['title'] . '". Please review the latest date, time, and venue.';
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
 foreach ($recipients as $r) {
-    $notifStmt->bind_param("isi", $r['user_id'], $message, $r['id']);
-    $notifStmt->execute();
+    notifyUser($con, $r['user_id'], $message, $r['id'], 'training_recommendation', "Training details updated: {$demand['title']}");
 }
-$notifStmt->close();
 
 // If HR raised capacity enough to clear more room than is currently used,
 // reopen the Not Selected pool - see reopenNotSelectedIfRoomAvailable()'s

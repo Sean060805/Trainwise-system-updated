@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -44,10 +45,7 @@ $updateStmt->execute();
 $updateStmt->close();
 
 $message = 'HR adjusted the confirmed list for "' . $row['title'] . '" - you are no longer confirmed to attend. You may be reconsidered if a spot opens up.';
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
-$notifStmt->bind_param("isi", $row['user_id'], $message, $recId);
-$notifStmt->execute();
-$notifStmt->close();
+notifyUser($con, $row['user_id'], $message, $recId, 'training_recommendation', "Update on your confirmation: {$row['title']}");
 
 // If that was the last Confirmed (and nobody's Completed yet either), the
 // demand itself shouldn't still read "Confirmed".

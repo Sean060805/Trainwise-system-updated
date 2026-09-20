@@ -9,63 +9,65 @@ calls that service over HTTP; it does not implement ML itself.
 has the ML side's design rationale (synthetic bootstrap labels for
 XGBoost, model choice for SBERT, etc.).
 
-## Current blocker (read this first)
+## Current status (re-verified 2026-09-21)
 
-Training recommendations still aren't appearing on either
-`training_recommendations.php` or the dashboard's "Recommended For
-You" card, even after fixing a foreign-key type mismatch that was
-previously causing `training_recommendations` table creation to fail
-silently (errno 150 — `user_id` was plain `INT`, `users.id` is
-`int(10) UNSIGNED`, now fixed to match in both files that define this
-table: `training_recommendations.php` and `user_page.php`).
+**The ML integration works end to end.** The old "recommendations aren't
+appearing" blocker (FK type mismatch, see bug 3 below) is fixed. Checked
+directly on 2026-09-21: `training_recommendations.user_id` is
+`int(10) unsigned` (matches `users.id`), PHP's curl reaches the ML API,
+`/recommend` returns HTTP 200 in well under a second, and the live log
+shows successful refreshes for real users on Sep 17-18.
 
-**Debug checklist, in order — don't skip ahead:**
+**The one recurring failure mode is uvicorn not running.** Every "no
+recommendations" symptom seen since the fix was the ML API being down
+(`ML API call failed for user N: Failed to connect to 127.0.0.1 port
+8000`). Check that first, always.
 
-1. **Confirm the table now exists with the right schema.** In
-   phpMyAdmin or via CLI: `SHOW TABLES LIKE 'training_recommendations';`
-   then `DESCRIBE training_recommendations;`. Confirm `user_id` shows
-   as `int(10) unsigned`. If the table still doesn't exist, the fix
-   didn't get applied, or table creation is still failing for a
-   different reason — check `php-errors.log` for a *current* error,
-   not the old cached one.
+### If a user reports "no recommendations", check in this order
 
-2. **Confirm the ML API is actually reachable from PHP's execution
-   context**, not just from your browser. `curl` and browser requests
-   don't always share the same network path/config. From a terminal:
-   `curl http://127.0.0.1:8000/health` — if that fails from a plain
-   terminal too, uvicorn isn't running (check the terminal it's in for
-   a crash). If it succeeds from a terminal but PHP still can't reach
-   it, check XAMPP's `php.ini` for `allow_url_fopen` / any disabled
-   `curl_*` functions, and check Windows Firewall isn't blocking
-   Apache's outbound connections specifically.
+1. **Is the ML API up?** `curl http://127.0.0.1:8000/health` should return
+   `{"status":"ok","programs_indexed":N}`. If it's refused, uvicorn isn't
+   running — see "Running everything together" below.
 
-3. **Confirm the gating conditions are actually true for your test
-   account.** Both `training_recommendations.php` and `user_page.php`
-   only call the ML refresh if `$hasProfile` is true (all profile
-   fields filled) — and the dashboard card additionally requires
-   `$hasSubmitted` (an assessment submitted for the *current active*
-   deadline specifically, not just any assessment ever). Add a
-   temporary `error_log(json_encode(['hasProfile' => $hasProfile,
-   'hasSubmitted' => $hasSubmitted]));` right before the ML refresh
-   call if it's unclear which condition is failing, check the log,
-   then remove it.
+2. **Read the live PHP log at `C:\xampp\htdocs\php-errors.log`** — NOT the
+   `php-errors.log` inside this project folder. `config.php` builds the
+   log path from `$_SERVER['DOCUMENT_ROOT']`, which under XAMPP is
+   `C:\xampp\htdocs`, one level above this project. The copy inside the
+   project is an old leftover (last written Aug 19) and will mislead you
+   into thinking nothing is being logged. Look for lines starting
+   "ML API call failed", "ML API returned HTTP", or
+   "refreshMLRecommendations:".
 
-4. **Add temporary logging inside `refreshMLRecommendations()`** (in
-   `ml_recommendations.php`) right before and after the `curl_exec()`
-   call — log the payload being sent, the raw response, and the HTTP
-   code — to see exactly what's happening in that specific call. Every
-   failure path in that function already calls `error_log()`, so check
-   `php-errors.log` for lines starting with "ML API call failed" or
-   "ML API returned HTTP" or "refreshMLRecommendations:" first — one of
-   those should already be firing if this is the failure point.
+3. **Check the gating — a refresh only fires when ALL of these hold**
+   (same in `training_recommendations.php` and `user_page.php`):
+   - `$hasProfile` — every profile field filled in.
+   - `$hasSubmitted` — the user has an assessment for the *current active
+     deadline specifically* (`assessments.deadline_id = <current
+     deadline>`), not just any assessment ever. A user whose only
+     submission belongs to an older deadline gets no refresh once a new
+     deadline opens, until they submit again.
+   - `needsMLRefresh()` — has a submission, and either no prior
+     recommendation exists yet or the latest submission is newer than the
+     latest recommendation batch. It intentionally returns `false` for a
+     user with no submission at all (adviser feedback: recommendations are
+     assessment-driven only; a completed profile alone must never
+     generate one). This is not the old "dead-end" bug — that's gone.
 
-5. **Check `needsMLRefresh()` isn't the blocker** — it returns `false`
-   (skip refresh) if there's no assessment submission at all AND no
-   prior ML recommendation exists yet, which is a dead-end case: never
-   refreshes because there's nothing to compare dates against, but
-   also never had a first refresh. Look at the exact logic in
-   `ml_recommendations.php` if recommendations never appear even for a
-   fresh account with zero prior attempts.
+4. **A user can legitimately see fewer cards than the ML returned.**
+   `refreshMLRecommendations()` only replaces rows whose status is
+   `Recommended`, and skips any title the user already has as Accepted /
+   Training Available / Confirmed / Not Selected / Completed. `Declined`
+   titles can come back in a later cycle, on purpose.
+
+5. **Table schema**, if the table is suspected missing:
+   `SHOW TABLES LIKE 'training_recommendations'; DESCRIBE
+   training_recommendations;` — `user_id` must be `int(10) unsigned`.
+
+To see one specific call's payload/response, add temporary `error_log()`
+lines inside `refreshMLRecommendations()` and **remove them afterwards** —
+they were left in permanently once before and were writing every user's
+profile and assessment text into the log. All failure paths in that
+function already log by default.
 
 ## Bugs found and fixed so far (for institutional memory / your paper's documentation)
 
@@ -76,7 +78,12 @@ table: `training_recommendations.php` and `user_page.php`).
    `update_training_status.php`, which didn't exist; the real file was
    `update_training_recommendation.php`. Every Start/Decline/Complete
    button was silently 404ing. Fixed.
-3. **Foreign key type mismatch** — see "Current blocker" above.
+3. **Foreign key type mismatch** — `training_recommendations.user_id` was
+   plain `INT` while `users.id` is `int(10) UNSIGNED`, so the `CREATE
+   TABLE` failed silently with errno 150 and no recommendations could
+   ever be stored. Fixed to `INT UNSIGNED`; the table is now defined in
+   `ensureTrainingRecommendationsTable()` in `ml_recommendations.php`.
+   Any new table with an FK to `users.id` must match that type exactly.
 4. **Pre-existing architecture issue, not a bug but worth documenting**:
    `user_page.php` originally had its own separate "AI recommendations"
    system that called the Anthropic Claude API directly with a
@@ -102,24 +109,33 @@ Browser -> training_recommendations.php OR user_page.php (dashboard)
 
 Key files in this repo:
 - `ml_recommendations.php` — all the ML integration logic (the refresh
-  call, column self-healing, staleness check)
-- `training_recommendations.php` — standalone recommendations page,
-  no `$hasSubmitted` gate (works once profile is complete)
-- `user_page.php` — main dashboard, "Recommended For You" card is
-  gated on `$hasSubmitted` (assessment submitted for current deadline)
-- `config.php` — has `ML_API_BASE_URL`, only defined for localhost
+  call, the self-healing `ensure*` schema functions, staleness check,
+  and the training_demand pipeline helpers)
+- `training_recommendations.php` — standalone recommendations page
+- `user_page.php` — main dashboard, "Recommended For You" card
+- `config.php` — has `ML_API_BASE_URL`, only defined for localhost; real
+  DB credentials live in `db_credentials.php` (gitignored — see
+  `db_credentials.example.php`)
 
 ## Running everything together
 
 You need three things running simultaneously to test:
 1. XAMPP: Apache + MySQL
-2. `trainwise-ml`: `venv\Scripts\activate` then
-   `uvicorn app.main:app --reload --port 8000`
+2. `trainwise-ml`: from that folder,
+   `venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000`
+   (or activate `venv` first). Use `venv`, **not** `.venv` — `.venv` is a
+   near-empty stray environment with none of the ML dependencies. Startup
+   takes a few seconds while the SBERT model loads; `/health` answers once
+   it's ready. If uvicorn is already running and you retrain XGBoost,
+   restart it — `--reload` doesn't watch the `.joblib` model file.
 3. Browser, logged into the PHP app
 
-## What comes after this works
+## Where the project is now
 
-Per the project owner: once recommendations are confirmed working
-end-to-end and dependable, next steps are Phase 6 (evaluate/tune the
-ML models properly) and then ISO 25010 / TAM testing for the capstone
-defense — don't start those until this integration is solid.
+Per the ML repo's CLAUDE.md, Phases 1-6 (including model evaluation and
+tuning) are done. Dated comments throughout `ml_recommendations.php`
+reference an ISO 25010 audit (2026-09-06 / 2026-09-17) and feedback from
+real testers, so the project is in the ISO 25010 / TAM testing and paper
+phase for the capstone defense. Bugs found during that testing should be
+fixed here or in the ML repo as appropriate — the integration itself is
+no longer the thing under suspicion.

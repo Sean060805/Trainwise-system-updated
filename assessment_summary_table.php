@@ -148,11 +148,23 @@ if (!empty($assessments)) {
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-6 mt-4">
+          <!-- 2026-09-17 redesign: these three fields used to be laid out
+               as a lopsided 2-column grid (Training History in its own
+               column; Desired Training Courses and Comments & Suggestions
+               stacked into the other column with only bare text under
+               Desired Training Courses, no card/background) - reported
+               directly as "not lined up good" and "too close" to the
+               field below it. Now a uniform 3-column grid where every
+               field gets the exact same white-card + icon-badge header
+               treatment, so nothing reads as more or less finished than
+               its neighbors. -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
             <!-- Training History -->
-            <div>
-              <h4 class="font-bold mb-3 flex items-center text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
-                <i class="ri-history-line mr-2" style="color:var(--gold,#D4A843);"></i>
+            <div class="rounded-xl p-5" style="background:#fff; border:1px solid var(--border-soft,#E8DDD0);">
+              <h4 class="font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--gold-soft,#F5E6C8);">
+                  <i class="ri-history-line text-sm" style="color:var(--gold,#D4A843);"></i>
+                </span>
                 Training History
               </h4>
               <?php if (!empty($training)): ?>
@@ -163,7 +175,12 @@ if (!empty($assessments)) {
                     $end = $t['end_time'] ?? '';
                     $duration = $t['duration'] ?? '';
                     $title = $t['training'] ?? 'No title';
-                    $venue = $t['venue'] ?? 'N/A';
+                    $venue = $t['venue'] ?? '';
+                    $modality = $t['modality'] ?? 'Face-to-Face';
+                    $trainingType = $t['training_type'] ?? '';
+                    $trainingTypeLabel = ($trainingType === 'Other' && !empty($t['training_type_other']))
+                        ? $t['training_type_other']
+                        : $trainingType;
 
                     // 2026-09-03 - moved to the shared
                     // format_training_date_range() in config.php so this
@@ -175,11 +192,21 @@ if (!empty($assessments)) {
                     $formattedEnd = $end ? date("g:i A", strtotime($end)) : 'N/A';
                     ?>
                     <div class="pl-4 py-2 rounded-r" style="border-left:3px solid var(--gold,#D4A843); background:var(--cream-dim,#F5EDDF);">
-                      <div class="font-medium text-sm" style="color:var(--ink,#16233A);"><?= htmlspecialchars($title) ?></div>
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="font-medium text-sm" style="color:var(--ink,#16233A);"><?= htmlspecialchars($title) ?></div>
+                        <?php if ($trainingTypeLabel): ?>
+                          <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:var(--gold-soft,#F5E6C8); color:#8C6423;"><?= htmlspecialchars($trainingTypeLabel) ?></span>
+                        <?php endif; ?>
+                      </div>
                       <div class="text-xs mt-1 space-y-1" style="color:var(--slate,#5B7288);">
                         <div class="flex items-center gap-2">
-                          <i class="ri-map-pin-line text-xs"></i>
-                          <span><?= htmlspecialchars($venue) ?></span>
+                          <?php if ($modality === 'Online'): ?>
+                            <i class="ri-global-line text-xs"></i>
+                            <span>Online</span>
+                          <?php else: ?>
+                            <i class="ri-map-pin-line text-xs"></i>
+                            <span><?= htmlspecialchars($venue ?: 'N/A') ?></span>
+                          <?php endif; ?>
                         </div>
                         <div class="flex items-center gap-2">
                           <i class="ri-calendar-event-line text-xs"></i>
@@ -202,36 +229,43 @@ if (!empty($assessments)) {
               <?php endif; ?>
             </div>
 
-            <!-- Desired Skills & Comments -->
-            <div class="space-y-4">
-              <div>
-                <h4 class="font-bold mb-3 flex items-center text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
-                  <i class="ri-target-line mr-2" style="color:var(--forest,#0D6B4D);"></i>
-                  Desired Training Courses
-                </h4>
-                <?php if (!empty($skills)): ?>
-                  <ul class="space-y-2">
-                    <?php foreach ($skills as $skill): ?>
-                      <li class="flex items-start gap-2">
-                        <i class="ri-checkbox-circle-line mt-0.5 text-sm" style="color:var(--forest,#0D6B4D);"></i>
-                        <span class="text-sm" style="color:var(--ink-soft,#52627B);"><?= htmlspecialchars($skill) ?></span>
-                      </li>
-                    <?php endforeach; ?>
-                  </ul>
-                <?php else: ?>
-                  <p class="text-sm" style="color:var(--ink-soft,#52627B);"><?= nl2br(htmlspecialchars($entry['desired_skills'] ?? 'No desired courses specified')) ?></p>
-                <?php endif; ?>
-              </div>
+            <!-- Desired Training Courses -->
+            <div class="rounded-xl p-5" style="background:#fff; border:1px solid var(--border-soft,#E8DDD0);">
+              <h4 class="font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(13,107,77,0.12);">
+                  <i class="ri-target-line text-sm" style="color:var(--forest,#0D6B4D);"></i>
+                </span>
+                Desired Training Courses
+              </h4>
+              <?php if (!empty($skills)): ?>
+                <ul class="space-y-2">
+                  <?php foreach ($skills as $skill): ?>
+                    <li class="flex items-start gap-2">
+                      <i class="ri-checkbox-circle-line mt-0.5 text-sm" style="color:var(--forest,#0D6B4D);"></i>
+                      <span class="text-sm" style="color:var(--ink-soft,#52627B);"><?= htmlspecialchars($skill) ?></span>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php elseif (!empty($entry['desired_skills'])): ?>
+                <p class="text-sm" style="color:var(--ink-soft,#52627B);"><?= nl2br(htmlspecialchars($entry['desired_skills'])) ?></p>
+              <?php else: ?>
+                <p class="text-sm italic" style="color:var(--slate,#5B7288);">No desired courses specified</p>
+              <?php endif; ?>
+            </div>
 
-              <div>
-                <h4 class="font-bold mb-3 flex items-center text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
-                  <i class="ri-message-3-line mr-2" style="color:var(--royal,#1A4B8C);"></i>
-                  Comments &amp; Suggestions
-                </h4>
-                <div class="rounded-lg p-4" style="background:var(--cream-dim,#F5EDDF);">
-                  <p class="text-sm" style="color:var(--ink-soft,#52627B);"><?= nl2br(htmlspecialchars($entry['comments'] ?? 'No comments provided')) ?></p>
-                </div>
-              </div>
+            <!-- Comments & Suggestions -->
+            <div class="rounded-xl p-5" style="background:#fff; border:1px solid var(--border-soft,#E8DDD0);">
+              <h4 class="font-bold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider" style="color:var(--slate-strong,#37485C);">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(26,75,140,0.12);">
+                  <i class="ri-message-3-line text-sm" style="color:var(--royal,#1A4B8C);"></i>
+                </span>
+                Comments &amp; Suggestions
+              </h4>
+              <?php if (!empty($entry['comments'])): ?>
+                <p class="text-sm" style="color:var(--ink-soft,#52627B);"><?= nl2br(htmlspecialchars($entry['comments'])) ?></p>
+              <?php else: ?>
+                <p class="text-sm italic" style="color:var(--slate,#5B7288);">No comments provided</p>
+              <?php endif; ?>
             </div>
           </div>
         </div>

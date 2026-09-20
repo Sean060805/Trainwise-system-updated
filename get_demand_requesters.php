@@ -42,7 +42,7 @@ $requestersStmt = $con->prepare("
     SELECT u.name, u.department, tr.status
     FROM training_recommendations tr
     JOIN users u ON u.id = tr.user_id
-    WHERE tr.demand_id = ? AND tr.status IN ('Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected')
+    WHERE tr.demand_id = ? AND tr.status IN ('Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected', 'Cancelled')
     ORDER BY u.name ASC
 ");
 $requestersStmt->bind_param("i", $demandId);

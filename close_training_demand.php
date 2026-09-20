@@ -15,6 +15,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -98,11 +99,8 @@ $flipStmt->execute();
 $flipStmt->close();
 
 $message = 'After review, HR found that everyone who requested "' . $demand['title'] . '" already has equivalent training on file. This request will not be pursued further this round.';
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
 foreach ($pending as $p) {
-    $notifStmt->bind_param("isi", $p['user_id'], $message, $p['id']);
-    $notifStmt->execute();
+    notifyUser($con, $p['user_id'], $message, $p['id'], 'training_recommendation', "Update on your request: {$demand['title']}");
 }
-$notifStmt->close();
 
 echo json_encode(['success' => true, 'closed_count' => count($pending)]);

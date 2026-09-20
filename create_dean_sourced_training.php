@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -152,13 +153,10 @@ foreach (array_unique([$deanCollege, $deptFullNames[$deanCollege] ?? $deanColleg
     $notifyStmt->bind_param("s", $deptValue);
     $notifyStmt->execute();
     $employees = $notifyStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $notifInsert = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_opportunity', 0, NOW())");
     foreach ($employees as $emp) {
-        $notifInsert->bind_param("isi", $emp['id'], $notifyMessage, $demandId);
-        $notifInsert->execute();
+        notifyUser($con, $emp['id'], $notifyMessage, $demandId, 'training_opportunity', "Your dean posted a new training: {$title}");
         $notifiedCount++;
     }
-    $notifInsert->close();
 }
 $notifyStmt->close();
 

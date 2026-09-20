@@ -2,6 +2,12 @@
 session_start();
 require_once 'config.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
 $user_id = $_SESSION['user_id'];
 $form_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $form_data = null;
@@ -632,6 +638,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
      (training_recommendations.php:219, etc.); this one was just missing
      the tag itself, not a CSS override or a JS conflict. -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" />
+<!-- 2026-09-17 fix - same class of bug as the RemixIcon one above: this
+     page's <style> block sets `* { font-family: 'Poppins' }` and also
+     references 'Fraunces'/'Space Grotesk' for headings, but never
+     actually loaded Google Fonts - it was silently rendering in the
+     browser's fallback sans-serif this whole time. save_idp_forms.php
+     (the sibling IDP page) already loads this exact font set. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root {

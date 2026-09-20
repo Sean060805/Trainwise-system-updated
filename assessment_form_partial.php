@@ -412,6 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const duration = entry.querySelector('.duration')?.value;
       const training = entry.querySelector('.training-input')?.value;
       const venue = entry.querySelector('.venue-input')?.value;
+      const trainingType = entry.querySelector('.training-type-input')?.value;
+      const trainingTypeOther = entry.querySelector('.training-type-other-input')?.value;
+      const modality = entry.querySelector('.modality-input')?.value;
 
       if (date || training) {
         trainingData.push({
@@ -421,7 +424,10 @@ document.addEventListener('DOMContentLoaded', () => {
           end_time: end || '',
           duration: duration || '',
           training: training || '',
-          venue: venue || ''
+          venue: venue || '',
+          training_type: trainingType || '',
+          training_type_other: trainingTypeOther || '',
+          modality: modality || 'Face-to-Face'
         });
       }
     });
@@ -450,7 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const entryId = `entry-${entryCounter}`;
     const v = {
       date: '', end_date: '', start_time: '08:00', end_time: '17:00',
-      training: '', venue: '', ...values,
+      training: '', venue: '', training_type: '', training_type_other: '',
+      modality: 'Face-to-Face', ...values,
     };
 
     const entry = document.createElement('div');
@@ -477,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-1">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div class="md:col-span-2">
           <label class="block text-xs font-medium mb-1" style="color:var(--slate-strong,#37485C);">Date(s)</label>
           <div class="flex items-center gap-2">
@@ -494,6 +501,12 @@ document.addEventListener('DOMContentLoaded', () => {
                    value="${v.end_date}"
                    class="end-date-input tna-input w-full rounded-md px-3 py-2 text-sm" />
           </div>
+          <!-- 2026-09-17 - this hint used to sit below the whole Date/Start
+               Time/End Time row (all three share one grid row at desktop
+               width), reading as disconnected from the specific field it's
+               actually about. Moved directly under the date inputs it
+               describes. -->
+          <p class="text-xs mt-1" style="color:var(--slate,#5B7288);">Leave the second date blank for a single-day training.</p>
         </div>
 
         <div>
@@ -514,7 +527,49 @@ document.addEventListener('DOMContentLoaded', () => {
                  required />
         </div>
       </div>
-      <p class="text-xs mb-4" style="color:var(--slate,#5B7288);">Leave the second date blank for a single-day training.</p>
+
+      <!-- 2026-09-17 addition, per real feedback from the first ~20
+           respondents: there used to be no training type here at all, and
+           Venue/Location was always required even for a training that was
+           genuinely online - people were typing "Online" or "N/A" into a
+           field labeled Venue as a workaround. Training Type now matches
+           the same vocabulary already used in the training-demand pipeline
+           (Workshop/Seminar/Webinar/Conference), plus Other for anything
+           that doesn't fit; Format determines whether Venue is even shown. -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--slate-strong,#37485C);">Training Type</label>
+          <select name="training_history[${entryId}][training_type]"
+                  class="training-type-input tna-input w-full rounded-md px-3 py-2 text-sm"
+                  required>
+            <option value="" ${v.training_type ? '' : 'selected'} disabled>Select type</option>
+            <option value="Workshop" ${v.training_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
+            <option value="Seminar" ${v.training_type === 'Seminar' ? 'selected' : ''}>Seminar</option>
+            <option value="Webinar" ${v.training_type === 'Webinar' ? 'selected' : ''}>Webinar</option>
+            <option value="Conference" ${v.training_type === 'Conference' ? 'selected' : ''}>Conference</option>
+            <option value="Other" ${v.training_type === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1" style="color:var(--slate-strong,#37485C);">Format</label>
+          <select name="training_history[${entryId}][modality]"
+                  class="modality-input tna-input w-full rounded-md px-3 py-2 text-sm"
+                  required>
+            <option value="Face-to-Face" ${v.modality === 'Face-to-Face' ? 'selected' : ''}>Face-to-Face</option>
+            <option value="Online" ${v.modality === 'Online' ? 'selected' : ''}>Online</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="training-type-other-wrap mb-4" style="display:${v.training_type === 'Other' ? 'block' : 'none'};">
+        <label class="block text-xs font-medium mb-1" style="color:var(--slate-strong,#37485C);">Specify Training Type</label>
+        <input type="text"
+               name="training_history[${entryId}][training_type_other]"
+               value="${v.training_type_other}"
+               class="training-type-other-input tna-input w-full rounded-md px-3 py-2 text-sm"
+               placeholder="e.g. Certification Exam" />
+      </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
@@ -537,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     required>${v.training}</textarea>
         </div>
 
-        <div>
+        <div class="venue-wrap" style="display:${v.modality === 'Online' ? 'none' : 'block'};">
           <label class="block text-xs font-medium mb-1" style="color:var(--slate-strong,#37485C);">Venue/Location</label>
           <input type="text"
                  name="training_history[${entryId}][venue]"
@@ -545,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  value="${v.venue}"
                  class="venue-input tna-input w-full rounded-md px-3 py-2 text-sm"
                  placeholder="Enter the training venue or location"
-                 required />
+                 ${v.modality === 'Online' ? '' : 'required'} />
         </div>
       </div>
     `;
@@ -569,6 +624,37 @@ document.addEventListener('DOMContentLoaded', () => {
       if (startDateInput.value) endDateInput.min = startDateInput.value;
     }
 
+    // Training Type "Other" reveals a free-text field to specify what it
+    // actually was; Format (Face-to-Face/Online) shows or hides Venue,
+    // since an online training genuinely has no physical venue to enter.
+    const typeSelect = entry.querySelector('.training-type-input');
+    const typeOtherWrap = entry.querySelector('.training-type-other-wrap');
+    const typeOtherInput = entry.querySelector('.training-type-other-input');
+    const modalitySelect = entry.querySelector('.modality-input');
+    const venueWrap = entry.querySelector('.venue-wrap');
+    const venueInput = entry.querySelector('.venue-input');
+
+    if (typeSelect && typeOtherWrap) {
+      typeSelect.addEventListener('change', () => {
+        const isOther = typeSelect.value === 'Other';
+        typeOtherWrap.style.display = isOther ? 'block' : 'none';
+        if (!isOther && typeOtherInput) typeOtherInput.value = '';
+      });
+    }
+
+    if (modalitySelect && venueWrap && venueInput) {
+      modalitySelect.addEventListener('change', () => {
+        const isOnline = modalitySelect.value === 'Online';
+        venueWrap.style.display = isOnline ? 'none' : 'block';
+        if (isOnline) {
+          venueInput.removeAttribute('required');
+          venueInput.value = '';
+        } else {
+          venueInput.setAttribute('required', 'required');
+        }
+      });
+    }
+
     // Add event listeners for all inputs
     entry.querySelectorAll('input, textarea').forEach(input => {
       input.addEventListener('input', updatePrintData);
@@ -589,6 +675,9 @@ document.addEventListener('DOMContentLoaded', () => {
       end_time: entry.querySelector('.end-time')?.value || '',
       training: entry.querySelector('.training-input')?.value || '',
       venue: entry.querySelector('.venue-input')?.value || '',
+      training_type: entry.querySelector('.training-type-input')?.value || '',
+      training_type_other: entry.querySelector('.training-type-other-input')?.value || '',
+      modality: entry.querySelector('.modality-input')?.value || 'Face-to-Face',
     };
   }
 
@@ -698,12 +787,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const training = entry.querySelector('.training-input')?.value.trim();
         const venue = entry.querySelector('.venue-input')?.value.trim();
         const duration = entry.querySelector('.duration')?.value;
+        const trainingType = entry.querySelector('.training-type-input')?.value;
+        const trainingTypeOther = entry.querySelector('.training-type-other-input')?.value.trim();
+        const modality = entry.querySelector('.modality-input')?.value;
 
         if (!forPrint) {
-          // For submission, all fields are required (end date is the one
+          // For submission, all fields are required - EXCEPT Venue, which
+          // only applies when Format is Face-to-Face (an online training
+          // genuinely has no venue to enter), and Specify Type, which only
+          // applies when Training Type is "Other". End date is the other
           // deliberate exception - blank means single-day, see the
-          // helper text under the date range fields)
-          if (!date || !startTime || !endTime || !training || !venue) {
+          // helper text under the date range fields.
+          const venueOk = modality === 'Online' || !!venue;
+          const typeOk = trainingType && (trainingType !== 'Other' || !!trainingTypeOther);
+          if (!date || !startTime || !endTime || !training || !venueOk || !typeOk) {
             errorMsg = `Please complete all fields for training entry #${index + 1}`;
             isValid = false;
             return;
@@ -742,14 +839,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     
-    // Check if at least one field is filled (for print)
-    if (forPrint && isValid) {
+    // 2026-09-17 fix - this "at least one field filled" check used to
+    // only run for the Print/PDF path (`forPrint`). The real Submit
+    // button called validateForm() too but this check never applied to
+    // it, so an entirely empty form (0 training entries, no desired
+    // skills, no comments) passed client-side validation, opened the
+    // "Ready to submit?" confirmation modal, and only got caught by
+    // save_assessment.php's own server-side check after Confirm Submit -
+    // surfacing as a raw "HTTP error! status: 400" instead of being
+    // flagged immediately on the first click, before the modal ever
+    // appeared. Now runs for both paths.
+    if (isValid) {
       const hasTraining = trainingEntries.length > 0;
       const hasDesiredSkills = desiredSkillsInput.value.trim().length > 0;
       const hasComments = commentsInput.value.trim().length > 0;
-      
+
       if (!hasTraining && !hasDesiredSkills && !hasComments) {
-        errorMsg = 'Please add at least one training entry, desired skill, or comment';
+        errorMsg = 'Please add at least one training entry, desired skill, or comment before submitting.';
         isValid = false;
       }
     }
@@ -812,29 +918,40 @@ document.addEventListener('DOMContentLoaded', () => {
       method: 'POST',
       body: formData
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    // 2026-09-17 fix - this used to throw a generic "HTTP error! status:
+    // 400" the instant response.ok was false, WITHOUT ever reading the
+    // response body - so save_assessment.php's own specific, helpful
+    // {success:false, message:"..."} (it always sends one, even on a 400)
+    // was silently discarded every single time the server rejected a
+    // submission. Now parses the JSON body first regardless of status
+    // code, and only falls back to a generic message if the body truly
+    // isn't valid JSON at all (a real unexpected failure, not a normal
+    // validation rejection).
+    .then(async response => {
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Server error (status ${response.status}). Please try again.`);
       }
-      return response.json();
+      if (!data.success) {
+        throw new Error(data.message || data.error || 'Submission failed. Please try again.');
+      }
+      return data;
     })
     .then(data => {
-      if (data.success) {
-        modal.classList.add('hidden');
-        showSuccess();
-        
-        if (data.redirect) {
-          setTimeout(() => {
-            window.location.href = data.redirect;
-          }, 2000);
-        } else {
-          // Reload page after 2 seconds
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        }
+      modal.classList.add('hidden');
+      showSuccess();
+
+      if (data.redirect) {
+        setTimeout(() => {
+          window.location.href = data.redirect;
+        }, 2000);
       } else {
-        throw new Error(data.error || 'Submission failed. Please try again.');
+        // Reload page after 2 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
     })
     .catch(error => {

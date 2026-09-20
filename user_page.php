@@ -250,6 +250,18 @@ try {
     error_log("Training history log error in user_page.php: " . $e->getMessage());
 }
 
+// 2026-09-17 addition - self-reported trainings (from the assessment
+// form's own "trainings you've attended" section) used to be entered and
+// then never shown anywhere again. Kept as a visually distinct section
+// from the proof-backed list above, not merged into it - see
+// getSelfReportedTrainingHistory()'s own comment for why.
+$selfReportedTrainingHistory = [];
+try {
+    $selfReportedTrainingHistory = getSelfReportedTrainingHistory($con, $userId);
+} catch (Exception $e) {
+    error_log("Self-reported training history error in user_page.php: " . $e->getMessage());
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -258,7 +270,14 @@ try {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard | LSPU Training Tracker</title>
-  <link rel="stylesheet" href="assets/css/tw-46.css">
+  <!-- 2026-09-16: cache-busted with the bundle's own mtime - this link
+       used to have no version param at all, so a browser that had
+       visited before would keep serving its cached copy of tw-46.css
+       forever after a rebuild, silently missing any new utility class
+       (e.g. this exact redesign's w-24/h-24 avatar sizing rendered as an
+       unconstrained giant circle on a cached page - rounded-full was
+       already present in the old bundle, w-24/h-24 was not). -->
+  <link rel="stylesheet" href="assets/css/tw-46.css?v=<?= @filemtime(__DIR__ . '/assets/css/tw-46.css') ?: time() ?>">
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -576,6 +595,20 @@ try {
       border: 1px solid rgba(212, 168, 67, 0.3);
     }
 
+    /* "Still Needed" rows in #profileModal - deliberately a lighter
+       affordance (hover tint only, no fill/border) than the
+       "Complete Profile Now" button below it, so the button stays the
+       one unambiguous primary action even though these are now clickable. */
+    .missing-field-row:hover {
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 1px 3px rgba(15, 24, 48, 0.06);
+    }
+    .missing-field-row:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -616,10 +649,17 @@ try {
        ============================================================ */
     #calendar .fc { font-family: 'Inter', sans-serif; }
 
-    #calendar .fc-toolbar.fc-header-toolbar { margin-bottom: 1.1rem; }
+    /* 2026-09-16 - shrunk considerably. This card sits in a ~1/3-width
+       column and a real 6-row month grid at the old row height (3.1rem)
+       read as tall/"portrait" - a lot of scroll for a calendar. Rows
+       tightened from 3.1rem to 2.15rem (6 rows: ~298px -> ~206px) plus
+       trimmed toolbar/header spacing on top of that; the 44px touch
+       target on the prev/next buttons is kept as-is (a deliberate
+       mobile-accessibility fix from 2026-09-03, not part of this ask). */
+    #calendar .fc-toolbar.fc-header-toolbar { margin-bottom: 0.65rem; }
     #calendar .fc-toolbar-title {
       font-family: 'Fraunces', serif;
-      font-size: 1.1rem;
+      font-size: 0.98rem;
       font-weight: 600;
       color: var(--ink);
     }
@@ -649,27 +689,27 @@ try {
 
     #calendar .fc-scrollgrid { border: none; }
     #calendar .fc-scrollgrid-sync-table, #calendar table { border-color: var(--cream-dim); }
-    #calendar th.fc-col-header-cell { border: none; padding-bottom: 0.5rem; }
+    #calendar th.fc-col-header-cell { border: none; padding-bottom: 0.3rem; }
     #calendar .fc-col-header-cell-cushion {
-      font-size: 0.66rem;
+      font-size: 0.62rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--slate);
       text-decoration: none;
-      padding: 0.3rem 0;
+      padding: 0.2rem 0;
     }
 
     #calendar .fc-daygrid-day { border-color: var(--cream-dim) !important; }
-    #calendar .fc-daygrid-day-frame { padding: 0.15rem; min-height: 3.1rem; }
+    #calendar .fc-daygrid-day-frame { padding: 0.05rem; min-height: 2.15rem; }
     #calendar .fc-daygrid-day-top { justify-content: center; }
     #calendar .fc-daygrid-day-number {
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       font-weight: 500;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 0.3rem;
-      margin: 0.15rem;
+      padding: 0.15rem;
+      margin: 0.05rem;
     }
     #calendar .fc-day-other .fc-daygrid-day-number { color: var(--slate-soft); }
     #calendar .fc-day-today { background: var(--gold-soft) !important; }
@@ -678,8 +718,8 @@ try {
       color: #fff;
       font-weight: 700;
       border-radius: 999px;
-      width: 1.6rem;
-      height: 1.6rem;
+      width: 1.3rem;
+      height: 1.3rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -689,15 +729,15 @@ try {
     #calendar .fc-daygrid-event-dot { display: none; }
     #calendar .fc-event {
       border: none;
-      border-radius: 0.4rem;
-      padding: 0.1rem 0.4rem;
-      font-size: 0.66rem;
+      border-radius: 0.35rem;
+      padding: 0.05rem 0.3rem;
+      font-size: 0.6rem;
       font-weight: 600;
-      margin-top: 0.15rem;
+      margin-top: 0.1rem;
       cursor: pointer;
     }
     #calendar .fc-more-link {
-      font-size: 0.66rem;
+      font-size: 0.6rem;
       font-weight: 700;
       color: var(--royal);
     }
@@ -949,19 +989,6 @@ try {
         Training Recommendations
       </a>
 
-      <!-- Assessment Page Link -->
-      <?php if ($hasProfile && $hasDeadline && !$hasSubmitted): ?>
-        <a href="#assessmentFormWrapper" id="assessment-sidebar-link" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg mt-4" style="background:linear-gradient(135deg, rgba(212,168,67,0.35), rgba(212,168,67,0.15)); border:1px solid rgba(212,168,67,0.5);">
-          <div class="w-6 h-6 flex items-center justify-center mr-3">
-            <i class="ri-file-edit-line text-lg"></i>
-          </div>
-          Take Assessment
-          <span class="ml-auto animate-pulse">
-            <i class="ri-arrow-right-up-line"></i>
-          </span>
-        </a>
-      <?php endif; ?>
-
       <a href="profile.php" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-lg">
         <div class="w-6 h-6 flex items-center justify-center mr-3">
           <i class="ri-user-line text-lg"></i>
@@ -1119,14 +1146,11 @@ try {
     <!-- Modal Overlay -->
     <div id="profileModal" class="modal-overlay">
       <div class="modal-container">
-        <div class="flex items-center justify-between mb-4">
+        <div class="mb-4">
           <h2 class="modal-title text-2xl font-bold section-title">
             <i class="ri-user-settings-line mr-2 text-2xl" style="color:#B8922A;"></i>
             Complete Your Profile
           </h2>
-          <button id="modalCloseBtn" class="modal-close p-2 rounded-full hover:bg-black/5 transition-colors">
-            <i class="ri-close-line text-xl text-gray-500"></i>
-          </button>
         </div>
 
         <div class="modal-content">
@@ -1149,11 +1173,23 @@ try {
               <p class="text-sm font-semibold mb-3 flex items-center" style="color:#B8922A;">
                 <i class="ri-information-line mr-2"></i> Still Needed
               </p>
-              <ul class="space-y-2">
+              <!-- 2026-09-16: these used to be inert <li> text. Testers
+                   were clicking them expecting them to jump to the field -
+                   so they now actually do that, instead of fighting the
+                   expectation. Kept visually lighter than the button below
+                   (thin hover state, no fill) so "Complete Profile Now"
+                   stays the one unambiguous primary action. -->
+              <ul class="space-y-1.5">
                 <?php foreach ($missingProfileFields as $field => $label): ?>
-                  <li class="flex items-center text-sm text-gray-700">
-                    <i class="ri-arrow-right-s-line mr-2" style="color:#B8922A;"></i>
-                    <?= htmlspecialchars($label) ?>
+                  <li>
+                    <a href="profile.php?focus=<?= urlencode($field) ?>"
+                       class="missing-field-row flex items-center justify-between text-sm text-gray-700 px-3 py-2.5 rounded-lg transition-all">
+                      <span class="flex items-center">
+                        <i class="ri-arrow-right-s-line mr-2" style="color:#B8922A;"></i>
+                        <?= htmlspecialchars($label) ?>
+                      </span>
+                      <i class="ri-edit-line text-xs text-gray-400"></i>
+                    </a>
                   </li>
                 <?php endforeach; ?>
               </ul>
@@ -1162,7 +1198,7 @@ try {
         </div>
 
         <div class="modal-actions">
-          <a href="profile.php" class="w-full inline-flex items-center justify-center px-6 py-3 text-white rounded-lg font-medium transition-all assessment-btn">
+          <a href="profile.php" class="w-full inline-flex items-center justify-center px-6 py-3.5 text-white rounded-xl font-semibold text-base transition-all assessment-btn">
             <i class="ri-user-settings-line mr-3"></i>
             Complete Profile Now
           </a>
@@ -1307,7 +1343,193 @@ try {
           </div>
         </div>
       <?php endif; ?>
+
+      <!-- 2026-09-16: promoted out of the left column (where it used to
+           sit AFTER the Assessment Forms table, so a longer table could
+           push it below the fold) to right here - the first actionable
+           thing after the welcome banner, guaranteed visible with no
+           scrolling regardless of table length. Same #showFormBtn id, so
+           the existing openAssessmentModal() JS wiring needs no change. -->
+      <?php if ($hasProfile && $showAssessmentButton): ?>
+        <div class="rounded-2xl shadow-custom-hover p-6 md:p-8 mb-8 hover-lift fade-up flex flex-col md:flex-row items-center justify-between gap-6"
+             style="background:linear-gradient(135deg, var(--royal) 0%, var(--royal-2) 100%);">
+          <div class="text-white text-center md:text-left">
+            <span class="eyebrow" style="color:var(--gold-light);">Action Needed</span>
+            <h2 class="text-2xl font-display font-semibold mt-1 mb-1">
+              <?= $currentDeadlinePassed ? 'Fill Out Your Training Needs Assessment (Late Submission)' : 'Fill Out Your Training Needs Assessment' ?>
+            </h2>
+            <p style="color:rgba(255,255,255,0.82);" class="text-sm">
+              <?= $currentDeadlinePassed
+                    ? 'The deadline has passed, but you can still submit your assessment.'
+                    : 'Takes about 5 minutes — tell us your training needs so we can recommend the right trainings for you.' ?>
+            </p>
+          </div>
+          <button id="showFormBtn" class="flex-shrink-0 px-8 py-4 rounded-xl font-semibold flex items-center shadow-lg hover-lift transition-all duration-300"
+                  style="background:var(--gold-light); color:var(--royal-2);">
+            <i class="ri-edit-box-line mr-3 text-xl"></i>
+            Fill Out Assessment
+            <i class="ri-arrow-right-line ml-3"></i>
+          </button>
+        </div>
+      <?php endif; ?>
     </div>
+
+    <!-- Profile Card - 2026-09-16: rebuilt landscape and pulled out of the
+         narrow lg:w-1/3 right column entirely (used to be a ~900px-tall
+         portrait card: 128px avatar, then 6 full-width stacked rows -
+         the single biggest reason the calendar below it needed a deep
+         scroll to reach). Now a full-width band, avatar+identity on the
+         left and a compact chip grid on the right, roughly 220-260px
+         tall regardless of viewport width. -->
+    <?php if (isset($user)): ?>
+      <div class="bg-white rounded-2xl shadow-custom overflow-hidden hover-lift fade-up mb-8">
+        <div class="flex flex-col md:flex-row items-stretch">
+          <div class="profile-gradient p-6 flex flex-row md:flex-col items-center gap-4 md:w-64 flex-shrink-0 text-center">
+            <div class="relative inline-block flex-shrink-0">
+              <svg class="progress-ring" width="104" height="104" style="position:absolute; top:-4px; left:50%; transform:translateX(-50%);">
+                <circle cx="52" cy="52" r="47" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3" />
+                <circle class="progress-ring-fg" cx="52" cy="52" r="47" fill="none" stroke="#D4A843" stroke-width="3"
+                        stroke-dasharray="<?= 2 * 3.1416 * 47 ?>"
+                        stroke-dashoffset="<?= 2 * 3.1416 * 47 * (1 - $profileCompletionPercentage / 100) ?>"
+                        stroke-linecap="round" transform="rotate(-90 52 52)" />
+              </svg>
+              <img class="w-24 h-24 rounded-full border-4 border-white/20 shadow-xl relative"
+                  src="<?= htmlspecialchars($mainImageSrc) ?>"
+                  alt="Profile Picture"
+                  onerror="this.onerror=null;this.src='<?= $defaultImage; ?>';">
+              <div class="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+                <i class="ri-check-line text-white text-xs"></i>
+              </div>
+            </div>
+            <div class="text-left md:text-center min-w-0">
+              <h2 class="text-lg font-display font-semibold text-white mb-0.5 leading-tight truncate">
+                <?= htmlspecialchars($user['name'] ?? 'User'); ?>
+              </h2>
+              <p class="text-sm truncate" style="color:var(--gold-light);"><?= htmlspecialchars($user['department'] ?? 'Department'); ?></p>
+              <span class="inline-block mt-1.5 px-2.5 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-xs text-white font-medium border border-white/20">
+                <?= htmlspecialchars($user['designation'] ?? 'Staff') ?>
+              </span>
+            </div>
+          </div>
+
+          <div class="p-6 flex-1 min-w-0">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <?php
+                $profileChips = [
+                  ['ri-graduation-cap-line', 'Educational Attainment', $user['educationalAttainment'] ?? ''],
+                  ['ri-medal-line', 'Specialization', $user['specialization'] ?? ''],
+                  ['ri-briefcase-line', 'Designation', $user['designation'] ?? ''],
+                  ['ri-building-line', 'Department', $user['department'] ?? ''],
+                  ['ri-history-line', 'Years in LSPU', !empty($user['yearsInLSPU']) ? $user['yearsInLSPU'] . ' years' : ''],
+                  ['ri-user-settings-line', 'Employment Type', $user['teaching_status'] ?? ''],
+                ];
+              ?>
+              <?php foreach ($profileChips as [$icon, $label, $value]): ?>
+                <?php if (!empty($value)): ?>
+                  <div class="flex items-start p-2.5 rounded-lg" style="background:var(--cream-dim);">
+                    <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-2.5 flex-shrink-0">
+                      <i class="<?= $icon ?> text-sm" style="color:var(--royal);"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-xs font-medium text-gray-500 truncate"><?= htmlspecialchars($label) ?></p>
+                      <p class="text-sm font-semibold text-gray-800 truncate"><?= htmlspecialchars($value) ?></p>
+                    </div>
+                  </div>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+              <a href="profile.php"
+                class="inline-flex items-center px-5 py-2.5 text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-xl assessment-btn">
+                <i class="ri-edit-line mr-2"></i>
+                Edit Profile
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <!-- ===================== AI TRAINING RECOMMENDATIONS ===================== -->
+    <!-- 2026-09-16: promoted to a full-width section right after the
+         Profile Card, above the Assessment Forms/Calendar row - this is
+         the thing worth seeing immediately after submitting an
+         assessment, not something to hunt for further down the page. -->
+    <?php if ($hasProfile): ?>
+      <?php if ($hasSubmitted): ?>
+        <div id="recommendedForYou" class="card-gradient rounded-2xl shadow-custom p-8 mb-8 hover-lift fade-up">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div>
+              <span class="eyebrow mb-1">Powered by AI</span>
+              <h2 class="text-2xl section-title mt-1 flex items-center">
+                <i class="ri-sparkling-2-fill mr-3 text-2xl" style="color:#B8922A;"></i>
+                Recommended For You
+              </h2>
+            </div>
+            <a href="training_recommendations.php"
+               class="inline-flex items-center px-4 py-2.5 text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-xl assessment-btn">
+              Go to Training Recommendations
+              <i class="ri-arrow-right-line ml-2"></i>
+            </a>
+          </div>
+          <p class="text-gray-600 text-sm mb-6">Based on your role and profile, here are trainings that could help you grow. This list updates the next time you submit a new assessment.</p>
+
+          <?php if (!empty($trainingRecommendations)): ?>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <?php foreach ($trainingRecommendations as $rec):
+                  $priority = strtolower($rec['priority'] ?? 'medium');
+                  $priorityClass = $priority === 'high' ? 'priority-high' : ($priority === 'low' ? 'priority-low' : 'priority-medium');
+                  // 2026-09-03, updated same day - same detection as
+                  // training_recommendations.php (exact-match against
+                  // recommender.py's LOW_CONFIDENCE_REASON - keep all
+                  // three in sync if that string ever changes). Now
+                  // only actually fires for a genuinely blank
+                  // submission - an irrelevant match is excluded
+                  // outright on the ML side now, not shown at all
+                  // (see recommender.py's has_real_query).
+                  $recReasonText = trim($rec['reason'] ?? '');
+                  $recIsLowConfidence = ($recReasonText === "No close match yet — shown as a general suggestion based on your role");
+              ?>
+                <div class="ai-card">
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <h4 class="font-display font-semibold text-gray-800 text-base leading-snug"><?= htmlspecialchars($rec['title'] ?? 'Suggested Training') ?></h4>
+                    <span class="ai-priority <?= $priorityClass ?> whitespace-nowrap"><?= htmlspecialchars($rec['priority'] ?? 'Medium') ?></span>
+                  </div>
+                  <p class="text-sm text-gray-600"><?= htmlspecialchars($rec['description'] ?? '') ?></p>
+                  <?php if ($recIsLowConfidence): ?>
+                    <p class="text-xs mt-2 flex items-start gap-1" style="color:#B8922A;">
+                      <i class="ri-search-eye-line mt-0.5"></i>
+                      <span>General suggestion — no particular training need specified.</span>
+                    </p>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php elseif ($mlError): ?>
+            <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
+              <i class="ri-cloud-off-line text-3xl mb-3 text-gray-300"></i>
+              <p class="font-medium">Recommendations are temporarily unavailable</p>
+              <p class="text-xs text-gray-400 mt-1">Please check back later. Your assessment has still been recorded.</p>
+            </div>
+          <?php else: ?>
+            <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
+              <i class="ri-loader-4-line text-3xl mb-3 text-gray-300"></i>
+              <p>No suggestions generated yet.</p>
+            </div>
+          <?php endif; ?>
+        </div>
+      <?php elseif ($hasDeadline): ?>
+        <!-- Locked preview so non-technical users understand what's coming -->
+        <div class="card-gradient rounded-2xl shadow-custom p-8 mb-8 text-center fade-up">
+          <div class="ai-locked-icon mx-auto mb-3">
+            <i class="ri-lock-line"></i>
+          </div>
+          <h3 class="section-title text-lg mb-1">AI Training Suggestions</h3>
+          <p class="text-sm text-gray-500 max-w-sm mx-auto">This unlocks right after you submit your Training Needs Assessment below. We will suggest trainings picked for your role.</p>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
 
     <!-- Dashboard Layout -->
     <div class="flex flex-col lg:flex-row gap-8">
@@ -1356,137 +1578,45 @@ try {
         </div>
 
         <?php if ($hasProfile): ?>
-          <!-- Assessment Button Section -->
-          <?php if ($showAssessmentButton): ?>
-            <div class="text-center mt-8 fade-up fade-up-3">
-              <button id="showFormBtn" class="px-8 py-4 text-white rounded-xl font-semibold flex items-center mx-auto shadow-lg hover:shadow-xl transition-all duration-300 hover-lift <?= $currentDeadlinePassed ? 'late-submission-btn' : 'assessment-btn' ?>">
-                <i class="ri-edit-box-line mr-3 text-xl"></i>
-                <?= $currentDeadlinePassed ? 'Fill Out Training Needs Assessment (Late Submission)' : 'Fill Out Training Needs Assessment' ?>
-                <i class="ri-arrow-right-line ml-3"></i>
-              </button>
-              <?php if ($currentDeadlinePassed): ?>
-                <p class="text-sm mt-3 flex items-center justify-center" style="color:#B8922A;">
-                  <i class="ri-alert-line mr-2"></i>
-                  The deadline has passed, but you can still submit your assessment.
-                </p>
-              <?php endif; ?>
-            </div>
-          <?php endif; ?>
-
           <!-- Submission Status Display -->
           <?php if ($hasSubmitted): ?>
-            <div class="submission-status <?= $submissionStatus === 'late' ? 'submission-status-late' : '' ?> mt-8 rounded-2xl p-8 fade-up">
-              <div class="submission-status-header flex items-center justify-center mb-4">
-                <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mr-4">
-                  <i class="ri-checkbox-circle-fill text-3xl text-white"></i>
-                </div>
-                <div>
-                  <h3 class="submission-status-title text-2xl font-display font-semibold">
-                    <?= $submissionStatus === 'late' ? 'Late Submission Received' : 'Assessment Successfully Submitted' ?>
-                  </h3>
-                  <p class="text-white/80 mt-1">
-                    <?= $submissionStatus === 'late' ? 'Submitted after the deadline' : 'Thank you for your submission' ?>
-                  </p>
-                </div>
-              </div>
-
-              <div class="submission-details bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-4">
-                <div class="flex flex-col items-center">
-                  <div class="flex items-center mb-3">
-                    <i class="ri-check-line mr-2 text-2xl text-white"></i>
-                    <span class="submission-message text-xl font-medium">
-                      <?= $submissionStatus === 'late' ? 'Your late submission was recorded' : 'Your assessment has been recorded' ?>
-                    </span>
+            <!-- 2026-09-17 redesign: was a large, centered celebratory
+                 block with a nested translucent panel repeating the same
+                 "recorded" message twice. Compacted into one row and,
+                 more importantly, fixed a real copy bug - it used to say
+                 "See your training suggestions below," but Recommended
+                 For You now renders ABOVE this card (see the 2026-09-16
+                 promotion above), so "below" was pointing the wrong way.
+                 Replaced with an actual button that scrolls back up to
+                 it, rather than a directional claim that can go stale
+                 again the next time this page's layout changes. -->
+            <div class="submission-status <?= $submissionStatus === 'late' ? 'submission-status-late' : '' ?> mt-8 rounded-2xl p-6 fade-up">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div class="flex items-center gap-4">
+                  <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <i class="ri-checkbox-circle-fill text-2xl text-white"></i>
                   </div>
-                  <div class="flex items-center text-white/90">
-                    <i class="ri-time-line mr-2"></i>
-                    <span class="submission-date">
-                      Submitted on <?= $userLastSubmitted ? $userLastSubmitted->format('F j, Y \a\t g:i a') : date('F j, Y') ?>
-                    </span>
+                  <div>
+                    <h3 class="submission-status-title text-xl font-display font-semibold">
+                      <?= $submissionStatus === 'late' ? 'Late Submission Received' : 'Assessment Successfully Submitted' ?>
+                    </h3>
+                    <p class="text-white/85 text-sm mt-0.5">
+                      Recorded on <?= $userLastSubmitted ? $userLastSubmitted->format('F j, Y \a\t g:i a') : date('F j, Y') ?><?= $submissionStatus === 'late' ? ', after the deadline' : ' — thank you for your submission' ?>.
+                    </p>
                   </div>
                 </div>
+                <?php if ($submissionStatus === 'late'): ?>
+                  <div class="flex items-center gap-2 text-sm bg-white/15 rounded-lg px-4 py-2.5 flex-shrink-0">
+                    <i class="ri-information-line"></i>
+                    <span>Received after the deadline</span>
+                  </div>
+                <?php else: ?>
+                  <a href="#recommendedForYou" class="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover-lift" style="background:#fff; color:var(--forest);">
+                    <i class="ri-sparkling-2-fill"></i>
+                    View My Recommendations
+                  </a>
+                <?php endif; ?>
               </div>
-
-              <?php if ($submissionStatus === 'late'): ?>
-                <p class="text-center text-white font-medium">
-                  <i class="ri-information-line mr-2"></i>
-                  Note: Your submission was received after the deadline.
-                </p>
-              <?php else: ?>
-                <p class="text-center text-white/90">
-                  <i class="ri-check-double-line mr-2"></i>
-                  Your assessment is now complete. See your training suggestions below.
-                </p>
-              <?php endif; ?>
-            </div>
-          <?php endif; ?>
-
-          <!-- ===================== AI TRAINING RECOMMENDATIONS ===================== -->
-          <?php if ($hasSubmitted): ?>
-            <div class="card-gradient rounded-2xl shadow-custom p-8 mt-8 hover-lift fade-up">
-              <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-                <div>
-                  <span class="eyebrow mb-1">Powered by AI</span>
-                  <h2 class="text-2xl section-title mt-1 flex items-center">
-                    <i class="ri-sparkling-2-fill mr-3 text-2xl" style="color:#B8922A;"></i>
-                    Recommended For You
-                  </h2>
-                </div>
-              </div>
-              <p class="text-gray-600 text-sm mb-6">Based on your role and profile, here are trainings that could help you grow. This list updates the next time you submit a new assessment.</p>
-
-              <?php if (!empty($trainingRecommendations)): ?>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <?php foreach ($trainingRecommendations as $rec):
-                      $priority = strtolower($rec['priority'] ?? 'medium');
-                      $priorityClass = $priority === 'high' ? 'priority-high' : ($priority === 'low' ? 'priority-low' : 'priority-medium');
-                      // 2026-09-03, updated same day - same detection as
-                      // training_recommendations.php (exact-match against
-                      // recommender.py's LOW_CONFIDENCE_REASON - keep all
-                      // three in sync if that string ever changes). Now
-                      // only actually fires for a genuinely blank
-                      // submission - an irrelevant match is excluded
-                      // outright on the ML side now, not shown at all
-                      // (see recommender.py's has_real_query).
-                      $recReasonText = trim($rec['reason'] ?? '');
-                      $recIsLowConfidence = ($recReasonText === "No close match yet — shown as a general suggestion based on your role");
-                  ?>
-                    <div class="ai-card">
-                      <div class="flex items-start justify-between gap-2 mb-2">
-                        <h4 class="font-display font-semibold text-gray-800 text-base leading-snug"><?= htmlspecialchars($rec['title'] ?? 'Suggested Training') ?></h4>
-                        <span class="ai-priority <?= $priorityClass ?> whitespace-nowrap"><?= htmlspecialchars($rec['priority'] ?? 'Medium') ?></span>
-                      </div>
-                      <p class="text-sm text-gray-600"><?= htmlspecialchars($rec['description'] ?? '') ?></p>
-                      <?php if ($recIsLowConfidence): ?>
-                        <p class="text-xs mt-2 flex items-start gap-1" style="color:#B8922A;">
-                          <i class="ri-search-eye-line mt-0.5"></i>
-                          <span>General suggestion — no particular training need specified.</span>
-                        </p>
-                      <?php endif; ?>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
-              <?php elseif ($mlError): ?>
-                <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
-                  <i class="ri-cloud-off-line text-3xl mb-3 text-gray-300"></i>
-                  <p class="font-medium">Recommendations are temporarily unavailable</p>
-                  <p class="text-xs text-gray-400 mt-1">Please check back later. Your assessment has still been recorded.</p>
-                </div>
-              <?php else: ?>
-                <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
-                  <i class="ri-loader-4-line text-3xl mb-3 text-gray-300"></i>
-                  <p>No suggestions generated yet.</p>
-                </div>
-              <?php endif; ?>
-            </div>
-          <?php elseif ($hasProfile && $hasDeadline): ?>
-            <!-- Locked preview so non-technical users understand what's coming -->
-            <div class="card-gradient rounded-2xl shadow-custom p-8 mt-8 text-center fade-up">
-              <div class="ai-locked-icon mx-auto mb-3">
-                <i class="ri-lock-line"></i>
-              </div>
-              <h3 class="section-title text-lg mb-1">AI Training Suggestions</h3>
-              <p class="text-sm text-gray-500 max-w-sm mx-auto">This unlocks right after you submit your Training Needs Assessment above. We will suggest trainings picked for your role.</p>
             </div>
           <?php endif; ?>
 
@@ -1510,186 +1640,18 @@ try {
 
       </div>
 
-      <!-- Right Column: Profile Information, Training History, and Calendar -->
+      <!-- Right Column: Calendar and Training History -->
       <div class="w-full lg:w-1/3 space-y-8">
-        <!-- Profile Card -->
-        <?php if (isset($user)): ?>
-        <div class="bg-white rounded-2xl shadow-custom overflow-hidden hover-lift fade-up fade-up-2">
-          <!-- Profile Header -->
-          <div class="profile-gradient p-6 text-center relative">
-            <div class="absolute top-4 right-4">
-              <span class="px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-xs text-white font-medium border border-white/20">
-                <?= htmlspecialchars($user['designation'] ?? 'Staff') ?>
-              </span>
-            </div>
-
-            <?php
-              $defaultImage = 'images/noprofile.jpg';
-              $mainImageSrc = $defaultImage;
-
-              if (!empty($user['profile_image'])) {
-                  $full_path = $upload_dir . $user['profile_image'];
-                  if (file_exists($full_path)) {
-                      $mainImageSrc = $full_path;
-                  }
-              }
-            ?>
-
-            <div class="relative inline-block">
-              <svg class="progress-ring" width="140" height="140" style="position:absolute; top:-4px; left:50%; transform:translateX(-50%);">
-                <circle cx="70" cy="70" r="64" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4" />
-                <circle class="progress-ring-fg" cx="70" cy="70" r="64" fill="none" stroke="#D4A843" stroke-width="4"
-                        stroke-dasharray="<?= 2 * 3.1416 * 64 ?>"
-                        stroke-dashoffset="<?= 2 * 3.1416 * 64 * (1 - $profileCompletionPercentage / 100) ?>"
-                        stroke-linecap="round" transform="rotate(-90 70 70)" />
-              </svg>
-              <img class="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-white/20 shadow-xl relative"
-                  src="<?= htmlspecialchars($mainImageSrc) ?>"
-                  alt="Profile Picture"
-                  onerror="this.onerror=null;this.src='<?= $defaultImage; ?>';">
-              <div class="absolute bottom-4 right-4 w-8 h-8 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
-                <i class="ri-check-line text-white text-xs"></i>
-              </div>
-            </div>
-
-            <h2 class="text-2xl font-display font-semibold text-white mb-1">
-              <?= htmlspecialchars($user['name'] ?? 'User'); ?>
-            </h2>
-            <p style="color:var(--gold-light);"><?= htmlspecialchars($user['department'] ?? 'Department'); ?></p>
-          </div>
-
-            <!-- Profile Details -->
-            <div class="p-6">
-              <div class="space-y-3">
-                <?php if (!empty($user['educationalAttainment'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-graduation-cap-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Educational Attainment</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['educationalAttainment']); ?></p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($user['specialization'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-medal-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Specialization</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['specialization']); ?></p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($user['designation'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-briefcase-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Designation</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['designation']); ?></p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($user['department'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-building-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Department</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['department']); ?></p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($user['yearsInLSPU'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-history-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Years in LSPU</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['yearsInLSPU']); ?> years</p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($user['teaching_status'])): ?>
-                  <div class="flex items-start p-3 rounded-lg transition-colors" style="background:var(--cream-dim);">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
-                      <i class="ri-user-settings-line" style="color:var(--royal);"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-600">Employment Type</p>
-                      <p class="font-semibold text-gray-800"><?= htmlspecialchars($user['teaching_status']); ?></p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-              </div>
-
-              <div class="mt-6 pt-6 border-t border-gray-100">
-                <a href="profile.php"
-                  class="w-full inline-flex items-center justify-center px-6 py-3 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl assessment-btn">
-                  <i class="ri-edit-line mr-3"></i>
-                  Edit Profile
-                </a>
-              </div>
-            </div>
-          </div>
-        <?php endif; ?>
-
-        <!-- ===================== TRAINING HISTORY (proof-backed) ===================== -->
-        <!-- Moved above the Calendar into the right column (2026-09-02, per
-             the adviser) - it used to sit at the bottom of the long left
-             column, well below the fold on most screens. Already card-type
-             per its original design; only the position changed.
-             2026-09-03 - this whole card used to be gated on
-             !empty($trainingHistory), so it was invisible for every
-             employee who hadn't completed a training yet (i.e. almost
-             everyone, early on) - which reads as broken/missing rather
-             than "you have no history yet." Now always renders, with a
-             proper empty state instead of disappearing. -->
-        <div class="card-gradient rounded-2xl shadow-custom p-6 hover-lift fade-up">
-          <div class="mb-2">
-            <span class="eyebrow mb-1">Your Record</span>
-            <h2 class="text-xl section-title mt-1 flex items-center">
-              <i class="ri-award-line mr-3 text-xl" style="color:#B8922A;"></i>
-              Training History
-            </h2>
-          </div>
-          <p class="text-gray-600 text-sm mb-4">Trainings you've completed, with proof on file.</p>
-          <?php if (!empty($trainingHistory)): ?>
-            <div class="grid gap-3">
-              <?php foreach ($trainingHistory as $h): ?>
-                <div class="ai-card">
-                  <h4 class="font-display font-semibold text-gray-800 text-base leading-snug"><?= htmlspecialchars($h['title']) ?></h4>
-                  <p class="text-sm text-gray-600 mt-1">
-                    <?= htmlspecialchars(date('M j, Y', strtotime($h['completion_date']))) ?>
-                    <?php if (!empty($h['hours'])): ?> &middot; <?= htmlspecialchars($h['hours']) ?> hrs<?php endif; ?>
-                  </p>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          <?php else: ?>
-            <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
-              <i class="ri-award-line text-3xl mb-3 text-gray-300"></i>
-              <p class="font-medium">No completed trainings yet</p>
-              <p class="text-xs text-gray-400 mt-1">Finished trainings with proof on file will show up here.</p>
-            </div>
-          <?php endif; ?>
-        </div>
-
-        <!-- Calendar Section -->
-        <div class="calendar-card hover-lift fade-up fade-up-3">
+        <!-- Calendar Section - 2026-09-16: moved ABOVE Training History
+             (used to be the 3rd stacked card here, after a tall portrait
+             Profile Card that has since moved out of this column
+             entirely - putting the more time-sensitive item, the
+             deadline/calendar, first minimizes whatever scroll distance
+             is left). -->
+        <div class="calendar-card hover-lift fade-up fade-up-2">
           <div class="mb-4">
-            <h3 class="text-xl section-title flex items-center">
+            <span class="eyebrow mb-1">This Month</span>
+            <h3 class="text-xl section-title mt-1 flex items-center">
               <i class="ri-calendar-line mr-3 text-2xl" style="color:#B8922A;"></i>
               Calendar
             </h3>
@@ -1719,6 +1681,80 @@ try {
                   <?php endif; ?>
                 </div>
               </div>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <!-- ===================== TRAINING HISTORY ===================== -->
+        <!-- 2026-09-17 redesign: this card used to show ONLY proof-backed
+             completions - anything typed into the assessment form's own
+             "trainings you've attended" section was entered and then
+             never shown anywhere again. Now shows both, in two clearly
+             labeled sections so "proof on file" and "self-reported" are
+             never confused for the same kind of record. -->
+        <div class="card-gradient rounded-2xl shadow-custom p-6 hover-lift fade-up fade-up-3">
+          <div class="mb-2">
+            <span class="eyebrow mb-1">Your Record</span>
+            <h2 class="text-xl section-title mt-1 flex items-center">
+              <i class="ri-award-line mr-3 text-xl" style="color:#B8922A;"></i>
+              Training History
+            </h2>
+          </div>
+
+          <?php if (!empty($selfReportedTrainingHistory)): ?>
+            <p class="text-xs font-bold uppercase tracking-wider mt-4 mb-2" style="color:var(--slate-strong);">Self-Reported (from your assessments)</p>
+            <div class="grid gap-3">
+              <?php foreach ($selfReportedTrainingHistory as $h):
+                $hModality = $h['modality'] ?? 'Face-to-Face';
+                $hType = $h['training_type'] ?? '';
+                $hTypeLabel = ($hType === 'Other' && !empty($h['training_type_other'])) ? $h['training_type_other'] : $hType;
+                $hStart = $h['start_time'] ?? '';
+                $hEnd = $h['end_time'] ?? '';
+              ?>
+                <div class="ai-card">
+                  <div class="flex items-start justify-between gap-2">
+                    <h4 class="font-display font-semibold text-gray-800 text-sm leading-snug"><?= htmlspecialchars($h['training'] ?? '') ?></h4>
+                    <?php if ($hTypeLabel): ?>
+                      <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:var(--gold-soft); color:#8C6423;"><?= htmlspecialchars($hTypeLabel) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <p class="text-xs text-gray-600 mt-1.5 flex items-center gap-1">
+                    <i class="ri-calendar-event-line"></i>
+                    <?= htmlspecialchars(format_training_date_range($h) ?: ($h['date'] ?? 'N/A')) ?>
+                    <?php if ($hStart): ?>
+                      &middot; <?= htmlspecialchars(date('g:i A', strtotime($hStart))) ?><?= $hEnd ? ' - ' . htmlspecialchars(date('g:i A', strtotime($hEnd))) : '' ?>
+                    <?php endif; ?>
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <?php if ($hModality === 'Online'): ?>
+                      <i class="ri-global-line"></i> Online
+                    <?php else: ?>
+                      <i class="ri-map-pin-line"></i> <?= htmlspecialchars($h['venue'] ?? 'N/A') ?>
+                    <?php endif; ?>
+                  </p>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <p class="text-xs font-bold uppercase tracking-wider mb-2 <?= !empty($selfReportedTrainingHistory) ? 'mt-5' : 'mt-4' ?>" style="color:var(--slate-strong);">Verified (Proof on File)</p>
+          <?php if (!empty($trainingHistory)): ?>
+            <div class="grid gap-3">
+              <?php foreach ($trainingHistory as $h): ?>
+                <div class="ai-card">
+                  <h4 class="font-display font-semibold text-gray-800 text-base leading-snug"><?= htmlspecialchars($h['title']) ?></h4>
+                  <p class="text-sm text-gray-600 mt-1">
+                    <?= htmlspecialchars(date('M j, Y', strtotime($h['completion_date']))) ?>
+                    <?php if (!empty($h['hours'])): ?> &middot; <?= htmlspecialchars($h['hours']) ?> hrs<?php endif; ?>
+                  </p>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <div class="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-xl">
+              <i class="ri-award-line text-3xl mb-3 text-gray-300"></i>
+              <p class="font-medium">No completed trainings yet</p>
+              <p class="text-xs text-gray-400 mt-1">Finished trainings with proof on file will show up here.</p>
             </div>
           <?php endif; ?>
         </div>
@@ -1941,12 +1977,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeAssessmentBtn) {
     closeAssessmentBtn.addEventListener('click', closeAssessmentModal);
   }
-  if (assessmentFormWrapper) {
-    // Click on the dimmed backdrop (not the modal box itself) closes it.
-    assessmentFormWrapper.addEventListener('click', (e) => {
-      if (e.target === assessmentFormWrapper) closeAssessmentModal();
-    });
-  }
+  // 2026-09-16: backdrop-click-to-close removed on purpose - a user could
+  // lose a partially-filled assessment with one misplaced click. The X
+  // button and Escape remain as the only explicit ways to dismiss it.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && assessmentFormWrapper && assessmentFormWrapper.style.display === 'flex') {
       closeAssessmentModal();
@@ -2001,34 +2034,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   <?php endif; ?>
 
-  // Profile modal handling
-  const profileModal = document.getElementById('profileModal');
-  const modalCloseBtn = document.getElementById('modalCloseBtn');
-
-  if (!hasProfile && profileModal && modalCloseBtn) {
-    modalCloseBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      Swal.fire({
-        title: '⚠️ Profile Required',
-        html: `<div class="text-left">
-                <p class="mb-3">You must complete your profile to access the assessment features.</p>
-                <div class="p-3 rounded-lg" style="background:#EEF2FF; border:1px solid #C7D2FE;">
-                  <p class="text-sm" style="color:#0F3460;"><strong>Required:</strong> Complete all profile fields to proceed.</p>
-                </div>
-              </div>`,
-        icon: 'warning',
-        confirmButtonColor: '#1A4B8C',
-        confirmButtonText: 'Go to Profile',
-        showCancelButton: true,
-        cancelButtonText: 'Stay Here',
-        customClass: { popup: 'rounded-2xl' }
-      }).then((result) => {
-        if (result.isConfirmed) {
-          window.location.href = 'profile.php';
-        }
-      });
-    });
-  }
 });
 
 // IDP dropdown functionality
@@ -2069,15 +2074,6 @@ document.addEventListener('DOMContentLoaded', function() {
     sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMobileSidebar));
   }
 });
-
-// "Take Assessment" sidebar link opens the same assessment modal.
-const assessmentSidebarLink = document.getElementById('assessment-sidebar-link');
-if (assessmentSidebarLink) {
-  assessmentSidebarLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (window.openAssessmentModal) window.openAssessmentModal();
-  });
-}
 </script>
 
 <?php if (isset($_GET['logout'])): ?>

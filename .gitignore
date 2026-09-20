@@ -20,3 +20,11 @@ uploads/
 # not something to hand to a public repo. Rest of docs/ (paper drafts,
 # manuscript chapters, TNA summaries) is fine - it's your own work.
 docs/List of Employees August 2026.pdf
+
+# 2026-09-21 - full data dump of the live database: the users table holds real
+# staff email addresses and bcrypt password hashes. The repo is public, so share
+# DB dumps with teammates privately, never through git.
+database/trainwise_db.sql
+
+# Per-machine VS Code workspace files (relative paths differ on every laptop).
+*.code-workspace

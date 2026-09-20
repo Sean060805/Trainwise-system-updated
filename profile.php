@@ -74,12 +74,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Handle image upload
         $profile_image = $current_image; // Keep current image by default
-        
+        // 2026-09-17 fix - ISO 25010 audit found the old image used to be
+        // deleted immediately after move_uploaded_file() succeeded, before
+        // the UPDATE below was even attempted. If that UPDATE then failed,
+        // the DB row was left pointing at a now-deleted file. Matches
+        // upload_training_proof.php's safer order now: hold the old path
+        // and only delete it after the DB write actually succeeds.
+        $oldImageToDelete = null;
+
         if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
             $file_type = mime_content_type($_FILES['profile_image']['tmp_name']);
             $file_ext = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
-            
+
             if (!in_array($file_type, $allowed_types)) {
                 $update_error = "Only JPG, PNG, or GIF images are allowed.";
             } elseif ($_FILES['profile_image']['size'] > 2 * 1024 * 1024) {
@@ -88,12 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Generate unique filename
                 $new_filename = 'profile_' . $user_id . '_' . time() . '.' . $file_ext;
                 $upload_path = $upload_dir . $new_filename;
-                
+
                 // Move uploaded file
                 if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_path)) {
-                    // Delete old image if exists and is not default
                     if (!empty($current_image) && $current_image != 'noprofile.jpg' && file_exists($upload_dir . $current_image)) {
-                        @unlink($upload_dir . $current_image);
+                        $oldImageToDelete = $upload_dir . $current_image;
                     }
                     $profile_image = $new_filename;
                 } else {
@@ -101,15 +107,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        
+
         if (empty($update_error)) {
             // Update user profile
             $stmt = $con->prepare("UPDATE users SET name=?, first_name=?, middle_initial=?, last_name=?, educationalAttainment=?, specialization=?, designation=?, department=?, yearsInLSPU=?, teaching_status=?, profile_image=? WHERE id=?");
             $stmt->bind_param("sssssssssssi", $full_name, $first_name, $middle_initial, $last_name, $educ, $spec, $desig, $dept, $years, $teach, $profile_image, $user_id);
-            
+
             if ($stmt->execute()) {
                 $update_success = true;
-                
+
+                // Only remove the old file now that the DB write it depends
+                // on has actually succeeded.
+                if ($oldImageToDelete !== null) {
+                    @unlink($oldImageToDelete);
+                }
+
                 // Update session data
                 $_SESSION['profile_name'] = $full_name;
                 $_SESSION['profile_first_name'] = $first_name;
@@ -121,12 +133,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['profile_yearsInLSPU'] = $years;
                 $_SESSION['profile_teaching_status'] = $teach;
                 $_SESSION['profile_image'] = $profile_image;
-                
+
                 // Set tracking for years increment
                 $_SESSION['profile_yearInLSPU_set'] = date('Y');
-                
-                // Redirect to refresh data
-                header("Location: profile.php?success=1");
+
+                // 2026-09-16: used to redirect back to profile.php?success=1
+                // and render its own toast - now lands the user straight on
+                // the dashboard instead, per the requested flow. user_page.php
+                // already has a ?profile_updated=1 handler for this (was
+                // dead/unused until now - nothing else ever set this param).
+                header("Location: user_page.php?profile_updated=1");
                 exit;
             } else {
                 $update_error = "Error updating profile: " . $stmt->error;
@@ -206,11 +222,6 @@ $current_year = date('Y');
 $year_set = $_SESSION['profile_yearInLSPU_set'] ?? $current_year;
 $computed_years = is_numeric($years) ? ((int)$years + ($current_year - (int)$year_set)) : '';
 
-// Check for success parameter
-if (isset($_GET['success']) && $_GET['success'] == '1') {
-    $update_success = true;
-}
-
 // 2026-09-03 fix - the sidebar's "Take Assessment" link (which every
 // other page - user_page.php, training_recommendations.php - shows
 // whenever the profile is complete, there's an open deadline, and
@@ -229,6 +240,25 @@ $hasProfile = !empty(trim($name ?? '')) && !empty(trim($educ)) && !empty(trim($s
 $requiredProfileFields = [$name ?? '', $educ, $spec, $desig, $dept, (string)$years, $teach];
 $completedProfileFields = count(array_filter($requiredProfileFields, fn($v) => !empty(trim($v))));
 $profileCompletionPercentage = round(($completedProfileFields / count($requiredProfileFields)) * 100);
+
+// 2026-09-15 - per-field emptiness, computed once from the values as
+// loaded from the DB (not re-evaluated on every keystroke), so the
+// server can (a) pre-select which fields start with the red "needs
+// input" styling, and (b) decide the one-time layout split below -
+// still-empty required fields render in their own group after the
+// filled ones, instead of interleaved, so a respondent can see at a
+// glance what's left. JS keeps the live version of this in sync as
+// they type; this is only the initial snapshot.
+$fieldIsEmpty = [
+    'first_name' => empty(trim($first_name ?? '')),
+    'last_name' => empty(trim($last_name ?? '')),
+    'educationalAttainment' => empty(trim($educ ?? '')),
+    'specialization' => empty(trim($spec ?? '')),
+    'designation' => empty(trim($desig ?? '')),
+    'department' => empty(trim($dept ?? '')),
+    'yearsInLSPU' => empty(trim((string)$years)),
+    'teaching_status' => empty(trim($teach ?? '')),
+];
 
 $hasDeadline = false;
 $hasSubmitted = false;
@@ -272,10 +302,12 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Profile | Training Needs Assessment</title>
-  <link rel="stylesheet" href="assets/css/tw-44.css">
+  <!-- cache-busted with the bundle's own mtime, see user_page.php's
+       tw-46.css link for why this matters. -->
+  <link rel="stylesheet" href="assets/css/tw-44.css?v=<?= @filemtime(__DIR__ . '/assets/css/tw-44.css') ?: time() ?>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" />
   <style>
     :root {
@@ -292,8 +324,11 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
       --gold-soft: #F5E6C8;
     }
 
+    /* 2026-09-16: switched from Poppins to Inter to match user_page.php
+       and index.php - a user visibly saw the font change moving between
+       the profile-gate flow and the dashboard in the same session. */
     * {
-      font-family: 'Poppins', sans-serif;
+      font-family: 'Inter', sans-serif;
     }
 
     body {
@@ -523,9 +558,25 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
 
     .form-input:focus {
       border-color: #1A4B8C;
-      box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.1);
+      /* 2026-09-16: widened to match index.php's soft-glow focus
+         convention (4px / 0.12) exactly, was a slightly weaker 3px/0.1. */
+      box-shadow: 0 0 0 4px rgba(26, 75, 140, 0.12);
       outline: none;
       background: #ffffff;
+    }
+
+    /* 2026-09-16: Save/Cancel bar stays pinned to the bottom of
+       .main-content (which is its own scroll container - height:100vh;
+       overflow-y:auto; above) so it never requires scrolling a long form
+       to reach, instead of sitting in normal flow at the very end. */
+    #actionButtons {
+      position: sticky;
+      bottom: 0;
+      background: #FDF8F0;
+      padding-top: 1.25rem;
+      padding-bottom: 1.25rem;
+      z-index: 10;
+      box-shadow: 0 -4px 16px -8px rgba(15, 24, 48, 0.15);
     }
 
     .form-input:disabled,
@@ -538,10 +589,31 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
     .form-input[readonly]:hover {
       background: #FDF8F0;
     }
+
+    /* 2026-09-15 - real TAM testers (20 respondents) reported that once
+       editing is on, an empty required field looks identical to a filled
+       one - nothing told them which boxes still needed input. Placed
+       after the disabled/readonly rules above so it wins the cascade
+       tie even on a field that's still technically disabled (e.g. during
+       the brief pre-auto-edit render). Red (not the earlier gold) per
+       follow-up feedback - matches this page's existing validation-error
+       color (border-red-500 in validateForm()) instead of introducing a
+       second "something's wrong" color. */
+    .form-input.field-empty,
+    .form-input.field-empty:disabled,
+    .form-input.field-empty[readonly] {
+      background: #FEF2F2;
+      border-color: #EF4444;
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.4);
+    }
+
+    .form-input.field-empty::placeholder {
+      color: #DC2626;
+    }
   </style>
 </head>
 
-<body class="bg-gray-50 font-poppins">
+<body class="bg-gray-50">
 <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open menu"><i class="ri-menu-line"></i></button>
 <div id="mobileBackdrop" class="mobile-backdrop"></div>
 <!-- Sidebar -->
@@ -803,10 +875,10 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
           <div class="flex-1">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- First Name -->
-              <div>
-                <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
-                <input 
-                  id="first_name" 
+              <div data-field="first_name">
+                <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">First Name <span class="req-ast text-red-500" id="ast-first_name" style="display:<?= $fieldIsEmpty['first_name'] ? 'inline' : 'none' ?>">*</span></label>
+                <input
+                  id="first_name"
                   name="first_name" 
                   type="text" 
                   value="<?= htmlspecialchars($first_name) ?>" 
@@ -831,8 +903,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
 
               <!-- Last Name -->
-              <div>
-                <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+              <div data-field="last_name">
+                <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">Last Name <span class="req-ast text-red-500" id="ast-last_name" style="display:<?= $fieldIsEmpty['last_name'] ? 'inline' : 'none' ?>">*</span></label>
                 <input
                   id="last_name"
                   name="last_name"
@@ -845,8 +917,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
 
               <!-- Educational Attainment -->
-              <div>
-                <label for="educationalAttainment" class="block text-sm font-medium text-gray-700 mb-2">Educational Attainment *</label>
+              <div data-field="educationalAttainment">
+                <label for="educationalAttainment" class="block text-sm font-medium text-gray-700 mb-2">Educational Attainment <span class="req-ast text-red-500" id="ast-educationalAttainment" style="display:<?= $fieldIsEmpty['educationalAttainment'] ? 'inline' : 'none' ?>">*</span></label>
                 <select 
                   id="educationalAttainment" 
                   name="educationalAttainment" 
@@ -880,8 +952,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
               
               <!-- Specialization -->
-              <div>
-                <label for="specialization" class="block text-sm font-medium text-gray-700 mb-2">Specialization *</label>
+              <div data-field="specialization">
+                <label for="specialization" class="block text-sm font-medium text-gray-700 mb-2">Specialization <span class="req-ast text-red-500" id="ast-specialization" style="display:<?= $fieldIsEmpty['specialization'] ? 'inline' : 'none' ?>">*</span></label>
                 <input 
                   id="specialization" 
                   name="specialization" 
@@ -894,8 +966,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
               
               <!-- Designation / Position -->
-              <div>
-                <label for="designationSelect" class="block text-sm font-medium text-gray-700 mb-2">Designation / Position *</label>
+              <div data-field="designation">
+                <label for="designationSelect" class="block text-sm font-medium text-gray-700 mb-2">Designation / Position <span class="req-ast text-red-500" id="ast-designation" style="display:<?= $fieldIsEmpty['designation'] ? 'inline' : 'none' ?>">*</span></label>
                 <?php
                   // 2026-09-03 - was free text; converted to a dropdown of
                   // the real CHED/SUC academic rank ladder (see
@@ -912,8 +984,15 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
                   // the adviser, sourced from LSPU LB) - same "Colleges /
                   // Offices" optgroup pattern already used for Department
                   // just below. "Other" kept as the fallback for both.
+                  // 2026-09-17 - "Part-Time Instructor" added below the
+                  // full-time Instructor ranks. Real feedback from the
+                  // first ~20 testers: most of them are part-time and had
+                  // no matching option here, so they were falling through
+                  // to the buried "Other" free-text fallback for what is
+                  // actually a common, real designation at LSPU.
                   $facultyRanks = [
                     'Instructor I', 'Instructor II', 'Instructor III',
+                    'Part-Time Instructor',
                     'Assistant Professor I', 'Assistant Professor II', 'Assistant Professor III', 'Assistant Professor IV',
                     'Associate Professor I', 'Associate Professor II', 'Associate Professor III', 'Associate Professor IV', 'Associate Professor V',
                     'Professor I', 'Professor II', 'Professor III', 'Professor IV', 'Professor V', 'Professor VI',
@@ -957,8 +1036,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
 
               <!-- Department -->
-              <div>
-                <label for="departmentSelect" class="block text-sm font-medium text-gray-700 mb-2">Department *</label>
+              <div data-field="department">
+                <label for="departmentSelect" class="block text-sm font-medium text-gray-700 mb-2">Department <span class="req-ast text-red-500" id="ast-department" style="display:<?= $fieldIsEmpty['department'] ? 'inline' : 'none' ?>">*</span></label>
                 <?php
                   $deptOptions = [
                     "CA" => "College of Agriculture (CA)",
@@ -970,8 +1049,19 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
                     "CIT" => "College of Industrial Technology (CIT)",
                     "CFND" => "College of Food, Nutrition and Dietetics (CFND)",
                     "COF" => "College of Fisheries (COF)",
-                    "CIHTM" => "College of International Hospitality and Tourism Management (CIHTM)",
-                    "CHMT" => "College of Hospitality Management and Tourism (CHMT)",
+                    // 2026-09-17 fix - this dropdown used to offer "CIHTM"
+                    // and "CHMT" as two separate colleges with two
+                    // different full names, for what is really the same
+                    // one college. The dean account for this college was
+                    // already set up as department='CHMT' (role
+                    // admin_chmt) before this was noticed, and that role
+                    // string is derived from this exact code in several
+                    // files (reject/forward/report_training_demand.php,
+                    // training_pipeline.php), so the code itself is left
+                    // as 'CHMT' rather than risk breaking that dean's
+                    // access - only the label shown to users is corrected
+                    // to the college's real name and acronym.
+                    "CHMT" => "College of International Hospitality and Tourism Management (CIHTM)",
                     "CTE" => "College of Teacher Education (CTE)",
                     "CONAH" => "College of Nursing and Allied Health (CONAH)",
                     "COL" => "College of Law (COL)"
@@ -1030,6 +1120,15 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
                     $fullName = trim(preg_replace('/\s*\(' . preg_quote($code, '/') . '\)\s*$/', '', $label));
                     $deptFullNameToCode[strtolower($fullName)] = $code;
                   }
+                  // 2026-09-17 - the removed "CIHTM" option above (see the
+                  // note there) means any account already saved with the
+                  // bare raw value 'CIHTM' would otherwise no longer match
+                  // anything here and get dumped into the free-text Other
+                  // box on their own profile. Resolves it to the same
+                  // 'CHMT' option (now correctly labeled) instead - a
+                  // display/pre-selection fix only, same as every other
+                  // alias in this block.
+                  $deptFullNameToCode['cihtm'] = 'CHMT';
                   $deptForSelect = $deptFullNameToCode[strtolower(trim($dept))] ?? $dept;
 
                   // 2026-09-08 fix - found while reviewing a real non-teaching
@@ -1101,8 +1200,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
               
               <!-- Years in LSPU -->
-              <div>
-                <label for="yearsInLSPU" class="block text-sm font-medium text-gray-700 mb-2">Years in LSPU *</label>
+              <div data-field="yearsInLSPU">
+                <label for="yearsInLSPU" class="block text-sm font-medium text-gray-700 mb-2">Years in LSPU <span class="req-ast text-red-500" id="ast-yearsInLSPU" style="display:<?= $fieldIsEmpty['yearsInLSPU'] ? 'inline' : 'none' ?>">*</span></label>
                 <input 
                   id="yearsInLSPU" 
                   name="yearsInLSPU" 
@@ -1123,8 +1222,8 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
               
               <!-- Employment Type -->
-              <div>
-                <label for="teaching_status" class="block text-sm font-medium text-gray-700 mb-2">Type of Employment *</label>
+              <div data-field="teaching_status">
+                <label for="teaching_status" class="block text-sm font-medium text-gray-700 mb-2">Type of Employment <span class="req-ast text-red-500" id="ast-teaching_status" style="display:<?= $fieldIsEmpty['teaching_status'] ? 'inline' : 'none' ?>">*</span></label>
                 <select 
                   id="teaching_status" 
                   name="teaching_status" 
@@ -1149,6 +1248,19 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
                 </select>
               </div>
             </div>
+
+            <!-- 2026-09-15 - real TAM testers said empty required fields
+                 got lost among the already-filled ones. JS moves each
+                 still-empty required field's wrapper div here, once, on
+                 page load (see groupEmptyFieldsBelow() below) - grouping
+                 them together instead of leaving them interleaved. Not
+                 re-run while the user is actively editing, so fields
+                 don't jump around mid-type. -->
+            <div id="needsInputHeading" class="hidden mt-8 pt-6 border-t-2 border-red-200 flex items-center gap-2">
+              <i class="ri-error-warning-fill text-red-500 text-lg"></i>
+              <p class="text-sm font-semibold text-red-600">Still needed - please fill in these required fields</p>
+            </div>
+            <div id="needsInputGrid" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"></div>
           </div>
         </div>
 
@@ -1176,16 +1288,6 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
     </div>
   </div>
 </main>
-
-<!-- Success Notification -->
-<?php if ($update_success): ?>
-<div id="successNotification" class="fixed top-4 right-4 bg-gradient-to-r from-forest to-forest-2 text-white p-4 rounded-xl shadow-lg font-medium flex items-center gap-3 z-50 animate-fade-in">
-  <div class="w-6 h-6 flex items-center justify-center bg-white/20 text-white rounded-full">
-    <i class="ri-check-line"></i>
-  </div>
-  <span>Profile updated successfully</span>
-</div>
-<?php endif; ?>
 
 <!-- Error Notification -->
 <?php if (!empty($update_error)): ?>
@@ -1228,7 +1330,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileImage = document.getElementById('profileImage');
   const formElements = document.querySelectorAll('#profileForm input, #profileForm select');
   const profileForm = document.getElementById('profileForm');
-  
+
+  // 2026-09-15 - real TAM testers found that clicking "Complete Profile
+  // Now" on the dashboard dropped them on a read-only form that still
+  // required a second click on "Edit Profile" before they could type
+  // anything - confusing enough that the person testing with them had to
+  // walk every respondent through it by hand. If the profile isn't
+  // complete yet, skip straight to edit mode; a profile that's already
+  // complete still opens read-only (protects against accidental edits).
+  const profileIsComplete = <?= $hasProfile ? 'true' : 'false' ?>;
+
   // Enable editing mode
   function enableEditing() {
     formElements.forEach(el => {
@@ -1290,6 +1401,89 @@ document.addEventListener('DOMContentLoaded', () => {
     desigSelect.addEventListener('change', syncDesignation);
     desigOtherInput.addEventListener('input', syncDesignation);
     syncDesignation();
+  }
+
+  // 2026-09-15 - highlight which required fields are still empty, live,
+  // so a respondent filling this in alone (no one walking them through
+  // it) can see at a glance what's left instead of guessing. Also drops
+  // the "*" from a field's label once it's filled (per follow-up
+  // feedback) - the asterisk only means anything while the field still
+  // needs input.
+  const plainRequiredFields = ['first_name', 'last_name', 'educationalAttainment', 'specialization', 'yearsInLSPU', 'teaching_status'];
+
+  function toggleAsterisk(fieldKey, isEmpty) {
+    const ast = document.getElementById('ast-' + fieldKey);
+    if (ast) ast.style.display = isEmpty ? 'inline' : 'none';
+  }
+
+  function setFieldState(fieldKey, el) {
+    if (!el) return;
+    const isEmpty = !el.value || !el.value.trim();
+    el.classList.toggle('field-empty', isEmpty);
+    toggleAsterisk(fieldKey, isEmpty);
+  }
+
+  function updateEmptyFieldHighlights() {
+    plainRequiredFields.forEach(id => setFieldState(id, document.getElementById(id)));
+
+    // Department/Designation each have two possible controls (a select,
+    // or the "Other" free-text fallback) - only the one actually visible
+    // should ever show as empty, but the asterisk is shared between them
+    // (it sits on the label, above both).
+    if (deptSelect) {
+      if (deptSelect.value === 'OTHER') {
+        deptSelect.classList.remove('field-empty');
+        setFieldState('department', deptOtherInput);
+      } else {
+        setFieldState('department', deptSelect);
+        if (deptOtherInput) deptOtherInput.classList.remove('field-empty');
+      }
+    }
+    if (desigSelect) {
+      if (desigSelect.value === 'OTHER') {
+        desigSelect.classList.remove('field-empty');
+        setFieldState('designation', desigOtherInput);
+      } else {
+        setFieldState('designation', desigSelect);
+        if (desigOtherInput) desigOtherInput.classList.remove('field-empty');
+      }
+    }
+  }
+
+  formElements.forEach(el => {
+    el.addEventListener('input', updateEmptyFieldHighlights);
+    el.addEventListener('change', updateEmptyFieldHighlights);
+  });
+
+  // 2026-09-15 - move whichever required fields started out empty (the
+  // server-computed style="display:none/inline" on each "*" already
+  // reflects this) into their own group below the filled ones, so
+  // they're not lost interleaved among 8 other fields. This runs exactly
+  // once, at load - re-running it while someone is actively typing would
+  // make fields jump around under their cursor, so it's deliberately
+  // NOT wired into updateEmptyFieldHighlights()/enableEditing().
+  function groupEmptyFieldsBelow() {
+    const needsGrid = document.getElementById('needsInputGrid');
+    const needsHeading = document.getElementById('needsInputHeading');
+    if (!needsGrid || !needsHeading) return;
+
+    const fieldKeys = ['first_name', 'last_name', 'educationalAttainment', 'specialization', 'designation', 'department', 'yearsInLSPU', 'teaching_status'];
+    let anyMoved = false;
+
+    fieldKeys.forEach(key => {
+      const wrapper = document.querySelector(`#profileForm [data-field="${key}"]`);
+      const ast = document.getElementById('ast-' + key);
+      if (!wrapper || !ast) return;
+      if (ast.style.display !== 'none') {
+        needsGrid.appendChild(wrapper);
+        anyMoved = true;
+      }
+    });
+
+    if (anyMoved) {
+      needsGrid.classList.remove('hidden');
+      needsHeading.classList.remove('hidden');
+    }
   }
 
   // Disable editing mode
@@ -1474,8 +1668,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Initialize in disabled state
-  disableEditing();
+  // Initialize: skip straight to edit mode if the profile still needs
+  // fields filled in (see profileIsComplete above); otherwise open
+  // read-only as before.
+  groupEmptyFieldsBelow();
+
+  // 2026-09-16: "Still Needed" rows in the dashboard's profile-gate modal
+  // now link here as profile.php?focus=<field>, so this needs to force
+  // edit mode (even on an otherwise-complete profile - the whole point is
+  // to make the target field immediately typeable) and land the user
+  // directly on it instead of making them hunt for it themselves.
+  const focusParams = new URLSearchParams(window.location.search);
+  const focusField = focusParams.get('focus');
+
+  if (focusField) {
+    enableEditing();
+  } else if (profileIsComplete) {
+    disableEditing();
+  } else {
+    enableEditing();
+  }
+  updateEmptyFieldHighlights();
+
+  if (focusField) {
+    const focusFieldIdMap = {
+      name: 'first_name',
+      educationalAttainment: 'educationalAttainment',
+      specialization: 'specialization',
+      designation: 'designationSelect',
+      department: 'departmentSelect',
+      yearsInLSPU: 'yearsInLSPU',
+      teaching_status: 'teaching_status'
+    };
+    const targetEl = document.getElementById(focusFieldIdMap[focusField] || '');
+    if (targetEl) {
+      // groupEmptyFieldsBelow() may have already relocated this field's
+      // wrapper into #needsInputGrid - querying by id still finds it
+      // wherever it now lives, so ordering here doesn't matter. Small
+      // delay lets that reflow (and the edit-mode toggle above) settle
+      // before scrolling, so the target position is stable.
+      setTimeout(() => {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetEl.focus({ preventScroll: true });
+      }, 50);
+    }
+  }
 });
 
 // Handle logout

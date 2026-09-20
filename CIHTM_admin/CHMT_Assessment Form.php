@@ -1,6 +1,6 @@
 ﻿<?php
 /* ===================================================================
-   CHMT — ASSESSMENT FORM SUBMISSIONS (College of Hospitality Management and Tourism only)
+   CHMT — ASSESSMENT FORM SUBMISSIONS (College of International Hospitality and Tourism Management (CIHTM) only)
    -------------------------------------------------------------------
    This is a CHMT-scoped copy of "CCS_Assessment Form.php". EVERY query below
    is constrained to department = 'CHMT' — a CHMT admin can only ever see

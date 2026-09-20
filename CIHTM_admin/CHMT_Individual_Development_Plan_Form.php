@@ -1,6 +1,6 @@
 ﻿<?php
 /* ===================================================================
-   CHMT IDP SUBMISSIONS — Department view for College of Hospitality Management and Tourism
+   CHMT IDP SUBMISSIONS — Department view for College of International Hospitality and Tourism Management (CIHTM)
    =================================================================== */
 
 session_start();
@@ -616,7 +616,7 @@ $departments = [
     'CCJE'  => 'College of Criminal Justice Education',
     'CCS'   => 'College of Computer Studies',
     'CFND'  => 'College of Food Nutrition and Dietetics',
-    'CHMT'  => 'College of Hospitality and Tourism Management',
+    'CHMT'  => 'College of International Hospitality and Tourism Management (CIHTM)',
     'CIT'   => 'College of Industrial Technology',
     'COE'   => 'College of Engineering',
     'COF'   => 'College of Fisheries',
@@ -1005,7 +1005,7 @@ if (count($parts) > 1) { $initials = strtoupper(substr($parts[0],0,1) . substr(e
           <div>
             <p class="eyebrow">Individual Development Plans · CHMT</p>
             <h2>CHMT IDP Submissions</h2>
-            <p>View and manage IDP forms submitted by College of Hospitality Management and Tourism faculty and staff.</p>
+            <p>View and manage IDP forms submitted by College of International Hospitality and Tourism Management (CIHTM) faculty and staff.</p>
           </div>
         </div>
 

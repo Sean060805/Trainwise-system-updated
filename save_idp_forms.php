@@ -2,6 +2,12 @@
 session_start();
 require_once 'config.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
 $user_id = $_SESSION['user_id'];
 
 // Set upload directory path
@@ -333,7 +339,7 @@ foreach ($forms as $form) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My IDP Forms</title>
-    <link rel="stylesheet" href="assets/css/tw-0.css">
+    <link rel="stylesheet" href="assets/css/tw-52.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">

@@ -1,6 +1,6 @@
 ﻿<?php
 /* ===================================================================
-   CHMT EVALUATION — Department view for College of Hospitality Management and Tourism
+   CHMT EVALUATION — Department view for College of International Hospitality and Tourism Management (CIHTM)
    -------------------------------------------------------------------
    UI designed to match CHMT.php (maroon accent, dark slate rail, 
    off-white canvas, JetBrains Mono for data).
@@ -175,7 +175,7 @@ $departments = [
     'CCJE'  => 'College of Criminal Justice Education',
     'CCS'   => 'College of Computer Studies',
     'CFND'  => 'College of Food Nutrition and Dietetics',
-    'CHMT'  => 'College of Hospitality and Tourism Management',
+    'CHMT'  => 'College of International Hospitality and Tourism Management (CIHTM)',
     'CIT'   => 'College of Industrial Technology',
     'COE'   => 'College of Engineering',
     'COF'   => 'College of Fisheries',

@@ -140,6 +140,30 @@ try {
     }
 
     $trainingRecommendations = getTrainingRecommendations($con, $userId);
+
+    // 2026-09-16 - reordered by status instead of left in fetch order
+    // (recommended_date/created_at). Reported directly by a user: after
+    // accepting a recommendation, it stayed wherever it originally sorted
+    // and could end up buried below newer, still-undecided "Recommended"
+    // cards - exactly the ones that need no attention yet, while the
+    // ones actively moving (found a training, confirmed a seat) were the
+    // ones worth surfacing without scrolling. Ties within the same
+    // status keep their original relative order (a stable sort).
+    $recStatusRank = [
+        'Training Available' => 0,
+        'Confirmed'          => 1,
+        'Accepted'           => 2,
+        'Recommended'        => 3,
+        'Completed'          => 4,
+        'Declined'           => 5,
+        'Not Selected'       => 6,
+        'Cancelled'          => 7,
+    ];
+    usort($trainingRecommendations, function ($a, $b) use ($recStatusRank) {
+        $rankA = $recStatusRank[$a['status']] ?? 99;
+        $rankB = $recStatusRank[$b['status']] ?? 99;
+        return $rankA <=> $rankB; // usort in PHP 8+ is stable, so equal ranks keep original order
+    });
     // "Post a Training Opportunity" (2026-09-06) - open, dean-posted
     // trainings this employee's own college can still sign up for. See
     // create_dean_sourced_training.php for the full design.
@@ -180,6 +204,7 @@ function getStatusColor($status) {
         case 'Completed': return 'bg-emerald-50 text-emerald-700';
         case 'Declined': return 'bg-red-50 text-red-700';
         case 'Not Selected': return 'bg-gray-100 text-gray-600';
+        case 'Cancelled': return 'bg-red-50 text-red-700';
         default: return 'bg-amber-50 text-amber-700';
     }
 }
@@ -190,6 +215,11 @@ function getStatusLabel($status) {
         case 'Training Available': return 'Training Found';
         case 'Confirmed': return 'Confirmed';
         case 'Not Selected': return 'Not Selected This Round';
+        // 2026-09-15 - distinct from "Not Selected This Round" (a
+        // training WAS found, this person just wasn't picked from the
+        // shortlist): this means nobody could source the training at
+        // all. See reject_training_demand.php.
+        case 'Cancelled': return 'Cancelled - No Training Available';
         default: return $status;
     }
 }
@@ -428,6 +458,32 @@ function getTypeIcon($type) {
     }
 
     .fade-up { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+    /* 2026-09-16 - status-group header inside #recommendationsList.
+       Marks where the list moves into a new status (Training Found,
+       Forwarded to HR, etc. - see the PHP status sort above). Extra
+       margin-top beyond .space-y-4's own spacing gives real separation
+       between one status's stack and the next, not just another card. */
+    .rec-status-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0 0.25rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass-strong, #B8922A);
+    }
+    .rec-status-header:first-child { margin-top: 0; }
+    .rec-status-header i { font-size: 0.95rem; }
+    .rec-status-header-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-soft, #E8DDD0);
+    }
 
     /* ===== Training recommendation cards ===== */
     .training-card {
@@ -846,6 +902,7 @@ function getTypeIcon($type) {
           <option value="Completed">Completed</option>
           <option value="Declined">Declined</option>
           <option value="Not Selected">Not Selected This Round</option>
+          <option value="Cancelled">Cancelled - No Training Available</option>
         </select>
       </label>
       <span id="filterResultCount" style="font-size:0.78rem;color:var(--slate);margin-left:auto;"></span>
@@ -855,7 +912,33 @@ function getTypeIcon($type) {
     <!-- Training Recommendations List -->
     <div class="space-y-4" id="recommendationsList">
       <?php if (!empty($trainingRecommendations)): ?>
+        <?php
+          // 2026-09-16 - a small header whenever the status changes as we
+          // walk the now status-sorted list above, so "Training Found" /
+          // "Forwarded to HR" read as their own stacked group instead of
+          // individual cards scattered among everything else. data-group-
+          // status lets the existing filter JS hide a header along with
+          // its cards instead of leaving an empty label behind.
+          $recStatusGroupIcon = [
+              'Training Available' => 'ri-sparkling-2-fill',
+              'Confirmed'          => 'ri-user-star-line',
+              'Accepted'           => 'ri-time-line',
+              'Recommended'        => 'ri-lightbulb-flash-line',
+              'Completed'          => 'ri-award-line',
+              'Declined'           => 'ri-close-circle-line',
+              'Not Selected'       => 'ri-information-line',
+              'Cancelled'          => 'ri-close-circle-line',
+          ];
+          $recPrevStatus = null;
+        ?>
         <?php foreach ($trainingRecommendations as $index => $rec): ?>
+          <?php if ($rec['status'] !== $recPrevStatus): $recPrevStatus = $rec['status']; ?>
+            <div class="rec-status-header" data-group-status="<?= htmlspecialchars($rec['status']) ?>">
+              <i class="<?= $recStatusGroupIcon[$rec['status']] ?? 'ri-folder-line' ?>"></i>
+              <span><?= htmlspecialchars(getStatusLabel($rec['status'])) ?></span>
+              <span class="rec-status-header-line"></span>
+            </div>
+          <?php endif; ?>
           <div class="training-card priority-<?= strtolower($rec['priority']) ?> p-6 fade-up"
                data-status="<?= htmlspecialchars($rec['status']) ?>"
                data-priority="<?= htmlspecialchars($rec['priority']) ?>"
@@ -990,6 +1073,11 @@ function getTypeIcon($type) {
                     <i class="ri-information-line mt-0.5"></i>
                     <span>A training was found for this, but the available slots were limited and you were not selected this time. You may be prioritized if it is offered again.</span>
                   </div>
+                <?php elseif ($rec['status'] === 'Cancelled'): ?>
+                  <div class="mt-3 ml-13 text-sm flex items-start gap-1" style="color:#B91C1C;">
+                    <i class="ri-close-circle-line mt-0.5"></i>
+                    <span>This request was cancelled - no training provider could be found.<?= !empty($rec['cancellation_reason']) ? ' Reason: ' . htmlspecialchars($rec['cancellation_reason']) : '' ?></span>
+                  </div>
                 <?php endif; ?>
 
                 <?php
@@ -1123,7 +1211,25 @@ function getTypeIcon($type) {
           </div>
           <h3 class="text-xl font-semibold mb-2 section-title">No Training Recommendations Yet</h3>
           <p class="max-w-md mx-auto" style="color:var(--ink-soft);">
-            <?= $hasProfile ? 'Your recommendations are being generated. Please check back shortly.' : 'Complete your profile to receive personalized training recommendations.' ?>
+            <?php
+              // 2026-09-15 - this used to only check $hasProfile, so a
+              // respondent with a complete profile who simply hadn't
+              // submitted an assessment yet saw "being generated, check
+              // back shortly" - misleading, since nothing was ever
+              // triggered to generate. Recommendations actually require
+              // BOTH a complete profile AND a submitted assessment (see
+              // $hasSubmitted below); match user_page.php's dashboard
+              // card, which already gets this 3-state distinction right.
+              if (!$hasProfile) {
+                  echo 'Complete your profile to receive personalized training recommendations.';
+              } elseif (!$hasSubmitted && !$hasDeadline) {
+                  echo 'There is no active assessment period right now. Recommendations appear once you submit one.';
+              } elseif (!$hasSubmitted) {
+                  echo 'Submit your Training Needs Assessment to receive personalized training recommendations.';
+              } else {
+                  echo 'Your recommendations are being generated. Please check back shortly.';
+              }
+            ?>
           </p>
           <?php if ($showAssessmentButton): ?>
             <a href="user_page.php#assessmentFormWrapper" class="btn-royal inline-flex items-center gap-2 mt-6 px-6 py-3 text-white rounded-xl font-medium">
@@ -1253,6 +1359,14 @@ function applyRecommendationFilters() {
     const matches = statusFilter === 'all' || card.dataset.status === statusFilter;
     card.style.display = matches ? '' : 'none';
     if (matches) visibleCount++;
+  });
+
+  // Each status-group header precedes exactly one status's cards (see the
+  // PHP status sort feeding this list), so it can be matched the same way
+  // the cards are - hide it along with them instead of leaving an empty
+  // "Training Found" label with nothing under it.
+  document.querySelectorAll('#recommendationsList .rec-status-header').forEach(header => {
+    header.style.display = (statusFilter === 'all' || header.dataset.groupStatus === statusFilter) ? '' : 'none';
   });
 
   const countLabel = document.getElementById('filterResultCount');

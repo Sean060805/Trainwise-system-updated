@@ -46,16 +46,21 @@ ensureTrainingRecommendationsTable($con); // also ensures training_demand exists
 $pendingUsers = $con->query("SELECT id FROM users WHERE status = 'pending'");
 $pendingCount = $pendingUsers ? $pendingUsers->num_rows : 0;
 
-// 2026-09-07 - top 10 most-requested trainings, computed live from real
-// submitted demand (training_demand.requester_count) rather than a
-// static document snapshot - see getTopRequestedTrainings() for why this
-// replaced an earlier version that just displayed the 2027 TNA summary's
-// own fixed top-10 list.
-$topRequestedTrainings = getTopRequestedTrainings($con, 10);
-
 /* -----------------------------------------------------------------------------
    TRAINING DEMAND - HR's pooled, cross-college view of accepted training
    requests, ranked by requester count.
+
+   2026-09-21 - orphaned demands are excluded. A demand row outlives the
+   employee who created it: deleting a user cascades to their
+   training_recommendations rows but leaves the training_demand row behind,
+   so HR saw "Awaiting Your Review" trainings with 0 requesters and nothing
+   to act on (they also inflated the pending-review badge). An orphan =
+   no recommendation row linked in ANY status AND not dean-posted. The
+   status-agnostic EXISTS is deliberate: a 'No Training Found' round keeps
+   its requesters as 'Cancelled' rows (history worth keeping), and a
+   dean-posted opportunity legitimately starts with no requesters at all
+   (sourced_college is set). If someone later accepts the same title,
+   findOrCreateTrainingDemand() re-attaches to the row and it reappears.
    ----------------------------------------------------------------------------- */
 $trainingDemandQuery = $con->query("
     SELECT d.id, d.title, d.found_training_title, d.training_type, d.pipeline_status, d.sourced_college,
@@ -63,6 +68,8 @@ $trainingDemandQuery = $con->query("
     FROM training_demand d
     LEFT JOIN training_recommendations tr ON tr.demand_id = d.id
       AND tr.status IN ('Accepted', 'Training Available', 'Confirmed', 'Completed')
+    WHERE d.sourced_college IS NOT NULL
+       OR EXISTS (SELECT 1 FROM training_recommendations x WHERE x.demand_id = d.id)
     GROUP BY d.id
     ORDER BY requester_count DESC, d.created_at DESC
 ");
@@ -122,28 +129,8 @@ foreach ($trainingDemandRows as &$d) {
 }
 unset($d);
 
-/** Map a training_demand.pipeline_status value to a badge CSS class. */
-function demandStatusBadgeClass(string $status): string {
-    switch ($status) {
-        case 'Forwarded to Dean': return 'badge-info';
-        case 'Training Found':    return 'badge-on-time';
-        case 'HR Approved':       return 'badge-accepted';
-        case 'Confirmed':        return 'badge-accepted';
-        case 'Training Completed': return 'badge-on-time';
-        case 'Closed':            return 'badge-no-sub';
-        default:                  return 'badge-pending'; // Pending HR Review
-    }
-}
-
-/** Display label for a pipeline_status value, HR-facing wording. */
-function demandStatusLabel(string $status): string {
-    switch ($status) {
-        case 'Pending HR Review': return 'Awaiting Your Review';
-        case 'HR Approved':       return 'Approved';
-        case 'Training Completed': return 'Completed';
-        default:                  return $status;
-    }
-}
+// demandStatusBadgeClass() / demandStatusLabel() live in ml_recommendations.php
+// (shared with reports_analytics.php's Top Requested card).
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1071,49 +1058,6 @@ function demandStatusLabel(string $status): string {
           </div>
         </div>
 
-        <?php if (!empty($topRequestedTrainings)): ?>
-        <!-- ===========================================================
-             TOP REQUESTED TRAININGS — live leaderboard computed from
-             actual submitted demand (training_demand.requester_count),
-             not a static document. See getTopRequestedTrainings() in
-             ml_recommendations.php.
-             =========================================================== -->
-        <section class="card" style="margin-top:1.15rem;">
-          <div class="card-head">
-            <h3><i class="ri-trophy-line"></i> Top <?= count($topRequestedTrainings) ?> Most Requested Trainings</h3>
-          </div>
-          <div class="card-body">
-            <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
-              Ranked by how many employees across all colleges have accepted or requested each one so far — updates automatically as more people submit. Useful context when deciding what to prioritize below, not a separate action item.
-            </p>
-            <div class="table-wrap">
-              <table class="data">
-                <thead>
-                  <tr>
-                    <th style="width:3rem;">#</th>
-                    <th>Training / Idea</th>
-                    <th class="num">Requesters</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($topRequestedTrainings as $i => $item): ?>
-                    <tr>
-                      <td>
-                        <span style="display:inline-flex;align-items:center;justify-content:center;width:1.6rem;height:1.6rem;border-radius:999px;background:var(--gold-soft,#F5E6C8);color:#8C6423;font-size:0.78rem;font-weight:700;"><?= $i + 1 ?></span>
-                      </td>
-                      <td><?= htmlspecialchars(demandDisplayTitle($item)) ?></td>
-                      <td class="num"><?= (int)$item['requester_count'] ?></td>
-                      <td><span class="badge <?= demandStatusBadgeClass($item['pipeline_status']) ?>"><?= htmlspecialchars(demandStatusLabel($item['pipeline_status'])) ?></span></td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-        <?php endif; ?>
-
         <!-- ===========================================================
              TRAINING DEMAND — HR aggregation pipeline (cross-college,
              ranked by requester count). See ml_recommendations.php for
@@ -1154,6 +1098,7 @@ function demandStatusLabel(string $status): string {
                   <option value="HR Approved">Approved</option>
                   <option value="Confirmed">Confirmed</option>
                   <option value="Training Completed">Completed (Archived)</option>
+                  <option value="No Training Found">No Training Found (Archived)</option>
                   <option value="Closed">Closed, No One Eligible (Archived)</option>
                 </select>
               </div>
@@ -1469,6 +1414,23 @@ function demandStatusLabel(string $status): string {
         <div id="demandNotSelectedBody" style="display:flex;flex-direction:column;gap:0.3rem;"></div>
       </div>
 
+      <!-- 2026-09-15 - people whose Accepted row was cancelled because no
+           training could be sourced at all (see reject_training_demand.php)
+           - kept out of the main requesters table for the same reason Not
+           Selected is: sitting next to still-active rows with a dash in
+           the Proof column reads as "still waiting on something." -->
+      <div id="demandCancelledSection" style="display:none;margin-bottom:1.2rem;">
+        <p style="font-size:0.76rem;color:var(--bad-ink);margin-bottom:0.4rem;">
+          <i class="ri-close-circle-line"></i> Cancelled - no training could be found:
+        </p>
+        <div id="demandCancelledBody" style="display:flex;flex-direction:column;gap:0.3rem;"></div>
+      </div>
+
+      <div id="demandCancellationDetails" style="display:none;background:var(--bad-soft);border:1px solid var(--bad-ink);border-radius:12px;padding:0.9rem 1.1rem;margin-bottom:1.2rem;">
+        <p id="demandCancelledByLabel" style="font-size:0.95rem;font-weight:700;color:var(--bad-ink);margin:0 0 0.4rem;"><i class="ri-close-circle-line"></i> No Training Found</p>
+        <p id="demandCancellationReason" style="font-size:0.88rem;color:var(--ink-2);margin:0;"></p>
+      </div>
+
       <div id="demandFoundDetails" style="display:none;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:0.9rem 1.1rem;margin-bottom:1.2rem;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.6rem;margin-bottom:0.5rem;">
           <p id="demandFoundByLabel" style="font-size:0.95rem;font-weight:700;color:var(--ink-2);margin:0;">What was found</p>
@@ -1527,8 +1489,14 @@ function demandStatusLabel(string $status): string {
       <button id="demandForwardBtn" class="btn btn-primary" onclick="forwardDemand()" style="display:none;">
         <i class="ri-send-plane-line"></i> Forward to Dean(s)
       </button>
+      <button id="demandSearchProvidersBtn" class="btn btn-ghost" onclick="openSearchProvidersModal()" style="display:none;">
+        <i class="ri-search-eye-line"></i> Search for Providers
+      </button>
       <button id="demandReportDirectBtn" class="btn btn-primary" onclick="openReportDirectModal()" style="display:none;">
         <i class="ri-file-edit-line"></i> Report Training Found
+      </button>
+      <button id="demandRejectDirectBtn" class="btn btn-danger" onclick="openRejectDemandModal()" style="display:none;">
+        <i class="ri-close-circle-line"></i> No Training Found
       </button>
       <button id="demandApproveBtn" class="btn btn-success" onclick="approveDemand()" style="display:none;">
         <i class="ri-check-double-line"></i> Approve and Notify Requesters
@@ -1653,6 +1621,58 @@ function demandStatusLabel(string $status): string {
       <button id="reportDirectSaveBtn" class="btn btn-primary" onclick="submitReportDirect()">
         <i class="ri-save-line"></i> Save
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================================
+     MODAL · NO TRAINING FOUND (HR self-report reject, 2026-09-15)
+     Counterpart to reportDirectModal above - HR's own equivalent of the
+     dean-side "No Training Found" button (see CCS_Training_Demand.php and
+     its 12 siblings), for the case where NO dean exists to review this
+     demand in the first place (see reject_training_demand.php's $isHr
+     branch). Native .modal, same convention as every other modal here.
+     ============================================================= -->
+<div class="modal" id="rejectDemandModal" role="dialog" aria-modal="true" aria-labelledby="rejectDemandTitle">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-head">
+      <h3 id="rejectDemandTitle"><i class="ri-close-circle-line"></i> No Training Found</h3>
+      <button class="modal-x" onclick="closeModal('rejectDemandModal')" aria-label="Close"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="modal-body">
+      <p id="rejectDemandDemandTitle" style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;"></p>
+      <p style="font-size:0.85rem;color:var(--ink-2);margin-bottom:0.9rem;">Every requester on this demand will be notified that it was cancelled, along with the reason below.</p>
+      <label for="rejectDemandReason" style="font-size:0.78rem;font-weight:700;color:var(--ink-2);display:block;margin-bottom:0.3rem;">Reason <span style="font-weight:400;color:var(--muted);">(shown to the requesters)</span></label>
+      <textarea id="rejectDemandReason" rows="3" placeholder="e.g. No available provider offers this in Region IV-A, and no online equivalent was found either."
+                style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--line);border-radius:10px;font-size:0.85rem;resize:none;overflow-y:auto;max-height:160px;box-sizing:border-box;"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('rejectDemandModal')">Cancel</button>
+      <button id="rejectDemandSaveBtn" class="btn btn-danger" onclick="submitRejectDemand()">
+        <i class="ri-close-circle-line"></i> Confirm - No Training Found
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================================
+     MODAL · SEARCH FOR PROVIDERS (2026-09-16) - HR's own version of the
+     research-assist button on each college dean dashboard. Read-only, no
+     state change - see search_training_providers.php's header comment for
+     the full reasoning (real suggestion from a CFND faculty respondent,
+     and why this can't just be an open web search).
+     ============================================================= -->
+<div class="modal" id="searchProvidersModal" role="dialog" aria-modal="true" aria-labelledby="searchProvidersTitle">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-head">
+      <h3 id="searchProvidersTitle"><i class="ri-search-eye-line"></i> Search for Providers</h3>
+      <button class="modal-x" onclick="closeModal('searchProvidersModal')" aria-label="Close"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="searchProvidersBody"><p style="font-size:0.85rem;color:var(--muted);">Searching real training-provider sites...</p></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('searchProvidersModal')">Close</button>
     </div>
   </div>
 </div>
@@ -1835,7 +1855,7 @@ function applyDemandFilterAndPagination() {
   // "All Statuses (active)" deliberately excludes both terminal states -
   // Training Completed and Closed are archived out of the default view,
   // not deleted; pick the "(archived)" option to see them.
-  const archivedStatuses = ['Training Completed', 'Closed'];
+  const archivedStatuses = ['Training Completed', 'Closed', 'No Training Found'];
   const matching = allRows.filter(row =>
     (filter ? row.dataset.status === filter : !archivedStatuses.includes(row.dataset.status)) &&
     (!originFilter || row.dataset.origin === originFilter)
@@ -1933,13 +1953,18 @@ function showDemandDetail(demandId) {
   document.getElementById('demandProofColumnHeader').style.display = 'none';
   document.getElementById('demandNotSelectedSection').style.display = 'none';
   document.getElementById('demandNotSelectedBody').innerHTML = '';
+  document.getElementById('demandCancelledSection').style.display = 'none';
+  document.getElementById('demandCancelledBody').innerHTML = '';
+  document.getElementById('demandCancellationDetails').style.display = 'none';
   document.getElementById('demandFoundDetails').style.display = 'none';
   document.getElementById('demandFoundStructured').style.display = 'none';
   document.getElementById('demandBudgetHintField').style.display = 'none';
   document.getElementById('demandBudgetHintInput').value = '';
   document.getElementById('demandCapacityNote').style.display = 'none';
   document.getElementById('demandForwardBtn').style.display = 'none';
+  document.getElementById('demandSearchProvidersBtn').style.display = 'none';
   document.getElementById('demandReportDirectBtn').style.display = 'none';
+  document.getElementById('demandRejectDirectBtn').style.display = 'none';
   document.getElementById('demandWaitingNote').style.display = 'none';
   document.getElementById('demandApproveBtn').style.display = 'none';
   document.getElementById('demandConfirmBtn').style.display = 'none';
@@ -2000,6 +2025,28 @@ function showDemandDetail(demandId) {
             <span>${r.name} <span style="color:var(--muted);">(${r.department})</span></span>
           </div>
         `).join('');
+      }
+
+      if (data.cancelled.length > 0) {
+        document.getElementById('demandCancelledSection').style.display = 'block';
+        document.getElementById('demandCancelledBody').innerHTML = data.cancelled.map(r => `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bad-soft);border:1px solid var(--line-soft);border-radius:10px;padding:0.6rem 0.9rem;font-size:0.82rem;">
+            <span>${r.name} <span style="color:var(--muted);">(${r.department})</span></span>
+          </div>
+        `).join('');
+      }
+
+      if (data.demand.pipeline_status === 'No Training Found') {
+        document.getElementById('demandCancellationDetails').style.display = 'block';
+        const cancelledByName = data.demand.cancelled_by_name;
+        if (cancelledByName) {
+          const isDean = (data.demand.cancelled_by_role || '').startsWith('admin_');
+          const roleTag = data.demand.cancelled_by_role === 'admin' ? 'HR' : isDean ? 'Dean' : '';
+          document.getElementById('demandCancelledByLabel').innerHTML = `<i class="ri-close-circle-line"></i> No Training Found - reported by ${cancelledByName}` + (roleTag ? ` (${roleTag})` : '');
+        } else {
+          document.getElementById('demandCancelledByLabel').innerHTML = '<i class="ri-close-circle-line"></i> No Training Found';
+        }
+        document.getElementById('demandCancellationReason').textContent = data.demand.cancellation_reason || '';
       }
 
       // Structured fields (provider/cost/dates/capacity) if this was
@@ -2075,7 +2122,9 @@ function showDemandDetail(demandId) {
           document.getElementById('demandForwardBtn').style.display = 'inline-flex';
           document.getElementById('demandBudgetHintField').style.display = 'block';
         } else {
+          document.getElementById('demandSearchProvidersBtn').style.display = 'inline-flex';
           document.getElementById('demandReportDirectBtn').style.display = 'inline-flex';
+          document.getElementById('demandRejectDirectBtn').style.display = 'inline-flex';
         }
       } else if (data.demand.pipeline_status === 'Forwarded to Dean') {
         // Purely informational - confirms the forward genuinely went
@@ -2119,6 +2168,7 @@ function showTrainingNeedsSummary() {
         'Pending HR Review': 'badge-pending',
         'Forwarded to Dean': 'badge-info',
         'Training Found': 'badge-on-time',
+        'No Training Found': 'badge-declined',
         'HR Approved': 'badge-accepted',
         'Confirmed': 'badge-accepted',
         'Training Completed': 'badge-on-time',
@@ -2153,6 +2203,7 @@ function requesterStatusBadgeClass(status) {
     'Confirmed': 'badge-accepted',
     'Completed': 'badge-on-time',
     'Not Selected': 'badge-no-sub',
+    'Cancelled': 'badge-declined',
   };
   return map[status] || 'badge-info';
 }
@@ -2710,6 +2761,84 @@ function submitReportDirect() {
     .catch(() => {
       saveBtn.disabled = false;
       showToast('err', 'Failed', 'Could not save this report - please try again.');
+    });
+}
+
+// HR's own "No Training Found" - same endpoint and outcome as the
+// dean-side button on each college dashboard, only reachable here for the
+// case where no dean exists to review this demand at all (see
+// reject_training_demand.php's $isHr branch).
+// 2026-09-16 - "Search for Providers" research-assist, HR's own version
+// of the dean-side button. Read-only, no state change - just a starting
+// point for whoever's sourcing this, pulled from real, legitimate
+// training-provider sites (never an open web search - see
+// search_training_providers.php's header comment for the real,
+// live-tested reason why).
+function openSearchProvidersModal() {
+  const body = document.getElementById('searchProvidersBody');
+  body.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);">Searching real training-provider sites...</p>';
+  openModal('searchProvidersModal');
+
+  fetch(`search_training_providers.php?demand_id=${currentDemandId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        body.innerHTML = `<p style="font-size:0.85rem;color:var(--muted);">${data.message || 'Could not search right now.'}</p>`;
+        return;
+      }
+      if (data.results.length === 0) {
+        body.innerHTML = `<p style="font-size:0.85rem;color:var(--muted);">No results found among ${data.domains_searched.join(', ')}. Try contacting them directly, or use "No Training Found" if nothing turns up.</p>`;
+        return;
+      }
+      const resultsHtml = data.results.map(r => `
+        <div style="border:1px solid var(--line);border-radius:10px;padding:0.7rem 0.9rem;margin-bottom:0.6rem;">
+          <a href="${r.link}" target="_blank" rel="noopener" style="font-weight:700;font-size:0.86rem;color:var(--accent);text-decoration:none;">${r.title}</a>
+          <p style="font-size:0.72rem;color:var(--ok-ink);margin:0.15rem 0;">${r.displayed_link}</p>
+          <p style="font-size:0.8rem;color:var(--ink-2);margin:0;">${r.snippet}</p>
+        </div>
+      `).join('');
+      body.innerHTML = `
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.7rem;">Real results from ${data.domains_searched.join(', ')} - verify and contact before promising anything to an employee.</p>
+        <div style="max-height:420px;overflow-y:auto;">${resultsHtml}</div>
+      `;
+    })
+    .catch(() => {
+      body.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);">Could not search right now. Please try again.</p>';
+    });
+}
+
+function openRejectDemandModal() {
+  document.getElementById('rejectDemandDemandTitle').textContent = document.getElementById('demandDetailName').textContent;
+  document.getElementById('rejectDemandReason').value = '';
+  document.getElementById('rejectDemandSaveBtn').disabled = false;
+  openModal('rejectDemandModal');
+}
+
+function submitRejectDemand() {
+  const reason = document.getElementById('rejectDemandReason').value.trim();
+  if (!reason) {
+    showToast('warn', 'Reason required', 'Please explain why no training could be found.');
+    return;
+  }
+  const saveBtn = document.getElementById('rejectDemandSaveBtn');
+  saveBtn.disabled = true;
+  const body = new URLSearchParams({ demand_id: currentDemandId, reason });
+  fetch('reject_training_demand.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
+    .then(r => r.json())
+    .then(data => {
+      saveBtn.disabled = false;
+      if (data.success) {
+        closeModal('rejectDemandModal');
+        showToast('ok', 'Cancelled', 'Requesters have been notified.');
+        demandDataChanged = true;
+        showDemandDetail(currentDemandId); // refresh in place
+      } else {
+        showToast('err', 'Failed', data.message || 'Could not cancel this demand.');
+      }
+    })
+    .catch(() => {
+      saveBtn.disabled = false;
+      showToast('err', 'Failed', 'Could not cancel this demand - please try again.');
     });
 }
 

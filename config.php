@@ -27,6 +27,12 @@ $is_local = ($_SERVER['SERVER_NAME'] === 'localhost' ||
 // the template. This file only decides WHICH set to use.
 require_once __DIR__ . '/db_credentials.php';
 
+// SerpApi key for the dean's "Search for Providers" research-assist
+// feature (search_training_providers.php) - same local/prod value either
+// way, unlike the DB credentials above, so this is defined once here
+// rather than duplicated in both branches below.
+define('SERPAPI_KEY', $serpapi_key ?? '');
+
 if ($is_local) {
     $host     = $local_host;
     $user     = $local_user;
@@ -41,6 +47,16 @@ if ($is_local) {
     $password = $prod_password;
     $database = $prod_database;
 }
+
+// Outbound email switch (2026-09-21). notifyUser()/sendNotificationEmail()
+// (notification_email.php) and admin_page.php's deadline/approval emails each
+// open a synchronous SMTP connection to Gmail per recipient, so any action
+// that notifies people (Approve and Notify Requesters, forwarding a demand,
+// setting a deadline...) froze the page for seconds while the browser
+// waited - it looked like the button had broken during testing.
+// false = in-app (bell) notifications only, which are unaffected. Flip to
+// true to bring email back; none of the sending code was removed.
+define('EMAIL_NOTIFICATIONS_ENABLED', false);
 
 error_reporting(E_ALL);
 

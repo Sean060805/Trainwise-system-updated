@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -236,12 +237,9 @@ $flipStmt->execute();
 $flipStmt->close();
 
 $message = 'A training has been found and approved for "' . $demandTitle . '". You may be selected to attend.';
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
 foreach ($recipients as $r) {
-    $notifStmt->bind_param("isi", $r['user_id'], $message, $r['id']);
-    $notifStmt->execute();
+    notifyUser($con, $r['user_id'], $message, $r['id'], 'training_recommendation', "Training approved: {$demandTitle}");
 }
-$notifStmt->close();
 
 logAuditEvent($con, $_SESSION['user_id'], $_SESSION['user_name'] ?? 'HR', $role,
     'Reported & Approved (HR self-report)', 'training_demand', $demandId,

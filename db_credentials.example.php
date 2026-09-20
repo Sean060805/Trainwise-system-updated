@@ -24,3 +24,7 @@ $smtp_pass      = "";
 $smtp_from_name = "LSPU Admin";
 $smtp_port      = 587;
 $smtp_secure    = "tls";
+
+// SerpApi (used by search_training_providers.php). Free tier: 250
+// searches/month, no billing required. Get a key at serpapi.com.
+$serpapi_key = "";

@@ -3,6 +3,7 @@
  * Integration layer between the PHP app and the trainwise-ml FastAPI service.
  * Used by training_recommendations.php and user_page.php.
  */
+require_once __DIR__ . '/notification_email.php';
 
 /**
  * Create the training_demand table if it doesn't exist yet. This is the
@@ -25,6 +26,10 @@ function ensureTrainingDemandTable($con) {
         ensureTrainingDemandFoundTitleColumn($con);
         ensureTrainingDemandFreeColumn($con);
         ensureTrainingDemandSourcedCollegeColumn($con);
+        ensureTrainingDemandNoTrainingFoundStatus($con);
+        ensureTrainingDemandCancellationColumns($con);
+        ensureTrainingDemandTitleNotUniqueAnymore($con);
+        ensureTrainingDemandStatusCollegeIndex($con);
         catchUpStaleConfirmedTrainingDemands($con);
         catchUpStaleTrainingDemands($con);
         return;
@@ -33,10 +38,10 @@ function ensureTrainingDemandTable($con) {
     $createTableSQL = "
         CREATE TABLE IF NOT EXISTS training_demand (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL UNIQUE,
+            title VARCHAR(255) NOT NULL,
             description TEXT,
             training_type VARCHAR(100),
-            pipeline_status ENUM('Pending HR Review', 'Forwarded to Dean', 'Training Found', 'HR Approved', 'Confirmed', 'Training Completed', 'Closed') DEFAULT 'Pending HR Review',
+            pipeline_status ENUM('Pending HR Review', 'Forwarded to Dean', 'Training Found', 'No Training Found', 'HR Approved', 'Confirmed', 'Training Completed', 'Closed') DEFAULT 'Pending HR Review',
             budget_hint VARCHAR(255) NULL,
             found_training_details TEXT NULL,
             found_provider VARCHAR(255) NULL,
@@ -53,8 +58,12 @@ function ensureTrainingDemandTable($con) {
             found_updated_at TIMESTAMP NULL,
             found_by_user_id INT UNSIGNED NULL,
             hr_approved_by_user_id INT UNSIGNED NULL,
+            cancellation_reason TEXT NULL,
+            cancelled_by_user_id INT UNSIGNED NULL,
+            cancelled_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_status_college (pipeline_status, sourced_college)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ";
 
@@ -259,6 +268,35 @@ function demandDisplayTitle(array $demand): string {
 }
 
 /**
+ * Map a training_demand.pipeline_status value to a badge CSS class.
+ * Lives here (moved out of training_pipeline.php 2026-09-21) because both
+ * training_pipeline.php and reports_analytics.php's Top Requested card
+ * render the same status badges.
+ */
+function demandStatusBadgeClass(string $status): string {
+    switch ($status) {
+        case 'Forwarded to Dean': return 'badge-info';
+        case 'Training Found':    return 'badge-on-time';
+        case 'No Training Found': return 'badge-declined';
+        case 'HR Approved':       return 'badge-accepted';
+        case 'Confirmed':        return 'badge-accepted';
+        case 'Training Completed': return 'badge-on-time';
+        case 'Closed':            return 'badge-no-sub';
+        default:                  return 'badge-pending'; // Pending HR Review
+    }
+}
+
+/** Display label for a pipeline_status value, HR-facing wording. */
+function demandStatusLabel(string $status): string {
+    switch ($status) {
+        case 'Pending HR Review': return 'Awaiting Your Review';
+        case 'HR Approved':       return 'Approved';
+        case 'Training Completed': return 'Completed';
+        default:                  return $status;
+    }
+}
+
+/**
  * Top N most-requested trainings, computed LIVE from what employees have
  * actually accepted/requested in the system right now - not a static
  * historical document. 2026-09-07 - originally this widget statically
@@ -349,6 +387,45 @@ function markTrainingDemandConfirmed($con, $demandId) {
 }
 
 /**
+ * Self-heal: adds 'No Training Found' to pipeline_status (2026-09-15) -
+ * real testing (feedback from Mr. Mike Philip Ramos) surfaced that the
+ * dean's only action on a forwarded demand was "Report to HR" - there was
+ * no way to say "I looked, nothing's actually available for this" without
+ * either leaving the demand stuck at 'Forwarded to Dean' forever, or
+ * dishonestly filling in the Report Found form. See
+ * reject_training_demand.php, the new endpoint that sets this.
+ */
+function ensureTrainingDemandNoTrainingFoundStatus($con) {
+    $checkColumn = $con->query("SHOW COLUMNS FROM training_demand LIKE 'pipeline_status'");
+    $columnInfo = $checkColumn ? $checkColumn->fetch_assoc() : null;
+    if (!$columnInfo || strpos($columnInfo['Type'], "'No Training Found'") !== false) {
+        return;
+    }
+    if (!$con->query("ALTER TABLE training_demand MODIFY COLUMN pipeline_status ENUM('Pending HR Review', 'Forwarded to Dean', 'Training Found', 'No Training Found', 'HR Approved', 'Confirmed', 'Training Completed', 'Closed') DEFAULT 'Pending HR Review'")) {
+        error_log("Error adding 'No Training Found' to training_demand pipeline_status ENUM: " . $con->error);
+    }
+}
+
+/**
+ * Self-heal: the dean/HR's stated reason for 'No Training Found', and who/
+ * when - same shape as the found_by_user_id/found_updated_at pair already
+ * used for the "found" path, kept separate rather than reusing those
+ * columns since a cancellation isn't a "found training" with blank fields.
+ */
+function ensureTrainingDemandCancellationColumns($con) {
+    $checkColumn = $con->query("SHOW COLUMNS FROM training_demand LIKE 'cancellation_reason'");
+    if ($checkColumn && $checkColumn->num_rows > 0) {
+        return;
+    }
+    if (!$con->query("ALTER TABLE training_demand
+        ADD COLUMN cancellation_reason TEXT NULL,
+        ADD COLUMN cancelled_by_user_id INT UNSIGNED NULL,
+        ADD COLUMN cancelled_at TIMESTAMP NULL")) {
+        error_log("Error adding cancellation columns to training_demand: " . $con->error);
+    }
+}
+
+/**
  * Mirror of markTrainingDemandConfirmed() for the reverse direction
  * (2026-08-31) - called from unconfirm_training_participant.php after
  * bumping someone out of Confirmed. If that leaves zero people actually
@@ -433,12 +510,9 @@ function reopenNotSelectedIfRoomAvailable($con, $demandId) {
     $reopenStmt->close();
 
     $message = 'More slots opened up for "' . $demand['title'] . '" - you may be reconsidered by HR.';
-    $notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
     foreach ($notSelectedRows as $r) {
-        $notifStmt->bind_param("isi", $r['user_id'], $message, $r['id']);
-        $notifStmt->execute();
+        notifyUser($con, $r['user_id'], $message, $r['id'], 'training_recommendation', "A slot opened up: {$demand['title']}");
     }
-    $notifStmt->close();
 
     return count($notSelectedRows);
 }
@@ -523,8 +597,28 @@ function catchUpStaleTrainingDemands($con) {
  * from update_training_recommendation.php on the Recommended -> Accepted
  * transition.
  */
+/**
+ * 2026-09-16 fix - real bug, found live during testing (two separate real
+ * accounts both hit it the same day): this used to match on title ALONE,
+ * with no regard for whether the existing demand row was still an open,
+ * in-progress round. A title is only ever inserted once (used to be
+ * enforced by a UNIQUE constraint on `title` - see
+ * ensureTrainingDemandTitleNotUniqueAnymore() below for why that's gone
+ * now), so once ANY demand for "Applied Machine Learning and AI
+ * Automation Fundamentals" reached a terminal status - Confirmed,
+ * Training Completed, Closed, or No Training Found - every future
+ * employee who accepted that exact recommendation, forever, silently
+ * inherited that old, closed-out row: its stale found_training_title
+ * (a real training from a completely unrelated earlier cohort, possibly
+ * months old), and a status HR would never revisit since it already
+ * reads as finished. Their genuine new request never surfaced to anyone.
+ * Now only pools into a row that's still actually open; a title whose
+ * only existing row is closed out gets a brand new one, correctly
+ * starting a fresh round instead of vanishing into history.
+ */
 function findOrCreateTrainingDemand($con, $title, $description, $trainingType) {
-    $stmt = $con->prepare("SELECT id FROM training_demand WHERE title = ?");
+    $openStatuses = "'Pending HR Review', 'Forwarded to Dean', 'Training Found', 'HR Approved'";
+    $stmt = $con->prepare("SELECT id FROM training_demand WHERE title = ? AND pipeline_status IN ($openStatuses)");
     $stmt->bind_param("s", $title);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -537,10 +631,13 @@ function findOrCreateTrainingDemand($con, $title, $description, $trainingType) {
     $insertStmt = $con->prepare("INSERT INTO training_demand (title, description, training_type) VALUES (?, ?, ?)");
     $insertStmt->bind_param("sss", $title, $description, $trainingType);
     if (!$insertStmt->execute()) {
-        // Lost a race with another Accept for the same title - the UNIQUE
-        // constraint on `title` rejected the insert, so just look it up.
+        // Defensive fallback only (e.g. a transient connection error) -
+        // titles are no longer DB-unique, so this shouldn't fire from a
+        // genuine race the way it used to. Re-check for an open row
+        // rather than assume one now exists.
+        error_log("findOrCreateTrainingDemand: insert failed for '$title' - " . $con->error);
         $insertStmt->close();
-        $stmt = $con->prepare("SELECT id FROM training_demand WHERE title = ?");
+        $stmt = $con->prepare("SELECT id FROM training_demand WHERE title = ? AND pipeline_status IN ($openStatuses)");
         $stmt->bind_param("s", $title);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -550,6 +647,48 @@ function findOrCreateTrainingDemand($con, $title, $description, $trainingType) {
     $demandId = $insertStmt->insert_id;
     $insertStmt->close();
     return (int)$demandId;
+}
+
+/**
+ * Self-heal: drops the UNIQUE constraint on training_demand.title (see
+ * findOrCreateTrainingDemand()'s comment for the real bug this enabled -
+ * a title could only ever be inserted once, forever, which is exactly
+ * what let a new request silently attach to an old, closed-out round).
+ * Multiple rows sharing a title are now expected and correct: each is a
+ * separate round (e.g. one Training Completed from an earlier cycle, one
+ * freshly Pending HR Review now) - findOrCreateTrainingDemand() is what
+ * enforces "only one OPEN round per title" going forward, not the schema.
+ */
+function ensureTrainingDemandTitleNotUniqueAnymore($con) {
+    $checkIndex = $con->query("SHOW INDEX FROM training_demand WHERE Key_name = 'title'");
+    if (!$checkIndex || $checkIndex->num_rows === 0) {
+        return;
+    }
+    if (!$con->query("ALTER TABLE training_demand DROP INDEX title")) {
+        error_log("Error dropping UNIQUE constraint on training_demand.title: " . $con->error);
+    }
+}
+
+/**
+ * Self-heal: pipeline_status and sourced_college had no index at all -
+ * fine when this table was tiny, but they're exactly the columns HR's
+ * and every dean's demand views filter/group on
+ * (getOpenTrainingOpportunities(), getTopRequestedTrainings(),
+ * admin_page.php's Training Demand tab), so a full table scan on every
+ * one of those page loads was only ever going to get worse as demand
+ * rows accumulate across cycles (this table no longer even has a
+ * UNIQUE(title) capping row count per title - see
+ * ensureTrainingDemandTitleNotUniqueAnymore() above). Found during the
+ * 2026-09-17 ISO 25010 Capacity/Performance audit.
+ */
+function ensureTrainingDemandStatusCollegeIndex($con) {
+    $checkIndex = $con->query("SHOW INDEX FROM training_demand WHERE Key_name = 'idx_status_college'");
+    if ($checkIndex && $checkIndex->num_rows > 0) {
+        return;
+    }
+    if (!$con->query("ALTER TABLE training_demand ADD INDEX idx_status_college (pipeline_status, sourced_college)")) {
+        error_log("Error adding idx_status_college index on training_demand: " . $con->error);
+    }
 }
 
 /**
@@ -604,6 +743,7 @@ function ensureTrainingRecommendationsTable($con) {
         ensureTrainingRecommendationsDemandColumn($con);
         ensureTrainingRecommendationsProofColumns($con);
         ensureTrainingRecommendationsNotSelectedStatus($con);
+        ensureTrainingRecommendationsCancelledStatus($con);
         ensureTrainingRecommendationsReasonColumn($con);
         ensureTrainingRecommendationsModalityColumn($con);
         backfillTrainingDemandLinks($con);
@@ -624,7 +764,7 @@ function ensureTrainingRecommendationsTable($con) {
             dean_link VARCHAR(500) NULL,
             dean_comment TEXT NULL,
             priority ENUM('High', 'Medium', 'Low') DEFAULT 'Medium',
-            status ENUM('Recommended', 'Declined', 'Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected') DEFAULT 'Recommended',
+            status ENUM('Recommended', 'Declined', 'Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected', 'Cancelled') DEFAULT 'Recommended',
             recommended_date DATETIME DEFAULT CURRENT_TIMESTAMP,
             completion_date DATETIME NULL,
             is_read TINYINT(1) DEFAULT 0,
@@ -690,8 +830,29 @@ function ensureTrainingRecommendationsNotSelectedStatus($con) {
     if (!$columnInfo || strpos($columnInfo['Type'], "'Not Selected'") !== false) {
         return;
     }
-    if (!$con->query("ALTER TABLE training_recommendations MODIFY COLUMN status ENUM('Recommended', 'Declined', 'Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected') DEFAULT 'Recommended'")) {
+    if (!$con->query("ALTER TABLE training_recommendations MODIFY COLUMN status ENUM('Recommended', 'Declined', 'Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected', 'Cancelled') DEFAULT 'Recommended'")) {
         error_log("Error adding 'Not Selected' to training_recommendations status ENUM: " . $con->error);
+    }
+}
+
+/**
+ * Self-heal: adds 'Cancelled' to the status ENUM (2026-09-15) - the
+ * terminal state for a requester whose training_demand was closed as
+ * 'No Training Found' (see reject_training_demand.php). Deliberately
+ * distinct from 'Not Selected' (a training WAS found, this person just
+ * wasn't picked from the shortlist) and from 'Declined' (the employee's
+ * own choice, before anyone acted on it) - this is neither: nobody could
+ * source the training at all, through no fault or choice of the
+ * requester's.
+ */
+function ensureTrainingRecommendationsCancelledStatus($con) {
+    $checkColumn = $con->query("SHOW COLUMNS FROM training_recommendations LIKE 'status'");
+    $columnInfo = $checkColumn ? $checkColumn->fetch_assoc() : null;
+    if (!$columnInfo || strpos($columnInfo['Type'], "'Cancelled'") !== false) {
+        return;
+    }
+    if (!$con->query("ALTER TABLE training_recommendations MODIFY COLUMN status ENUM('Recommended', 'Declined', 'Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected', 'Cancelled') DEFAULT 'Recommended'")) {
+        error_log("Error adding 'Cancelled' to training_recommendations status ENUM: " . $con->error);
     }
 }
 
@@ -880,6 +1041,54 @@ function getTrainingHistoryLog($con, $userId) {
 }
 
 /**
+ * Self-reported past trainings, pulled from every assessment this user
+ * has ever submitted (the "trainings you've attended in the last three
+ * years" section of the TNA form) - deliberately kept separate from
+ * getTrainingHistoryLog() above, which is proof-backed (certificate +
+ * approval letter + program + hours, verified via the Confirmed ->
+ * Completed flow). This is what the employee themselves typed in, with
+ * nothing to back it up.
+ *
+ * A user submitting assessments across multiple cycles will often
+ * re-report the same real-world training more than once, since each
+ * cycle's own "last three years" window naturally overlaps the last -
+ * deduplicated here on (date + training title) so it only shows once.
+ */
+function getSelfReportedTrainingHistory($con, $userId) {
+    $stmt = $con->prepare("SELECT training_history FROM assessments WHERE user_id = ? AND training_history IS NOT NULL AND training_history != '' ORDER BY created_at DESC");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $seen = [];
+    $entries = [];
+    foreach ($rows as $row) {
+        $decoded = json_decode($row['training_history'], true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        foreach ($decoded as $entry) {
+            if (empty($entry['training'])) {
+                continue;
+            }
+            $key = strtolower(trim($entry['date'] ?? '') . '|' . trim($entry['training']));
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $entries[] = $entry;
+        }
+    }
+
+    usort($entries, function ($a, $b) {
+        return strcmp($b['date'] ?? '', $a['date'] ?? '');
+    });
+
+    return $entries;
+}
+
+/**
  * Decide whether it's worth calling the ML service again for this user.
  * Recommendations are assessment-driven only: a user with no submitted
  * assessment yet never gets a refresh, even on a first call, so
@@ -961,8 +1170,6 @@ function refreshMLRecommendations($con, $userId) {
         'training_history' => $assessment['training_history'] ?? null,
     ];
 
-    error_log("refreshMLRecommendations: payload for user $userId: " . json_encode($payload));
-
     $ch = curl_init(rtrim(ML_API_BASE_URL, '/') . '/recommend');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -976,8 +1183,6 @@ function refreshMLRecommendations($con, $userId) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
-
-    error_log("refreshMLRecommendations: HTTP $httpCode for user $userId, response: " . substr((string)$response, 0, 2000));
 
     if ($response === false) {
         error_log("ML API call failed for user $userId: $curlError");
@@ -1074,7 +1279,7 @@ function getTrainingRecommendations($con, $userId) {
         SELECT tr.*,
                d.found_provider, d.found_cost, d.is_free, d.found_dates, d.found_start_time, d.found_end_time,
                d.found_capacity, d.found_venue, d.actual_modality, d.found_notes, d.found_updated_at,
-               d.found_training_title,
+               d.found_training_title, d.cancellation_reason,
                fb.role AS found_by_role
         FROM training_recommendations tr
         LEFT JOIN training_demand d ON d.id = tr.demand_id
@@ -1234,7 +1439,17 @@ const TNA_COLLEGE_CODE_MAP = [
     'cit' => 'CIT', 'college of industrial technology' => 'CIT',
     'cfnd' => 'CFND', 'college of food, nutrition and dietetics' => 'CFND',
     'cof' => 'COF', 'college of fisheries' => 'COF',
-    'chmt' => 'CHMT',
+    // 2026-09-17 fix - real bug found via the admin dashboard's
+    // department chart showing 0 for this college despite 2 real
+    // submissions: this college's own dean account is stored as
+    // department='CHMT' (role admin_chmt), but real employees who
+    // register pick/type 'CIHTM' (the college's actual acronym -
+    // International Hospitality and Tourism Management), which had no
+    // mapping here at all, unlike every other college's both short-code
+    // and full-name variants.
+    'chmt' => 'CHMT', 'cihtm' => 'CHMT',
+    'college of hospitality and tourism management' => 'CHMT',
+    'college of international hospitality and tourism management' => 'CHMT',
     'cte' => 'CTE', 'college of teacher education' => 'CTE',
     'conah' => 'CONAH', 'college of nursing and allied health' => 'CONAH',
     'col' => 'COL', 'college of law' => 'COL',
@@ -1269,7 +1484,45 @@ const TNA_COLLEGE_CODE_MAP = [
     'human resource management' => 'ADMIN',
     'medical and dental services' => 'ADMIN',
     'procurement' => 'ADMIN',
+    // 2026-09-17 fix - 3 more real offices found actually stored in
+    // users.department (confirmed via a direct query) that had no
+    // mapping here at all, landing in the Manage Users filter's vague
+    // "Other" group instead of "Non-Teaching" even though they're real,
+    // legitimate LSPU offices, not free-text garbage.
+    'lspu information office' => 'ADMIN',
+    'mis' => 'ADMIN',
+    'planning and development office' => 'ADMIN',
 ];
+
+// 2026-09-17 addition - separate from canonicalTnaCollegeCode() on
+// purpose. That function deliberately blends every non-teaching office
+// into one 'ADMIN' code, which is correct for TNA/dean-routing (there's
+// no per-office TNA data or dean role, only one pooled bucket). But real
+// feedback found this same blending was leaking into the Manage Users
+// department filter/table, where it's actively wrong: 5 real non-
+// teaching staff typed their own office into the "Other, please
+// specify" field, and every one of them then displayed as the generic
+// "Main Administrative Office" instead of the actual office they typed -
+// a real loss of information, not just a display quirk. This resolves a
+// raw department value to ITS OWN office name (deduplicating only true
+// legacy-spelling variants of the same office, e.g. "Registrar's
+// Office" -> "Admission and Registrarship" - the old 5-office names HR
+// used before the real 13-office list existed), so distinct offices
+// stay distinct instead of collapsing into one bucket. Keep in sync with
+// $legacyOfficeAliases in profile.php if either changes.
+const LEGACY_OFFICE_NAME_ALIASES = [
+    "registrar's office" => 'Admission and Registrarship',
+    'human resource management office (hrmo)' => 'Human Resource Management',
+    'supply/property office' => 'Supply',
+    'library' => 'Library Services',
+    'accounting/budget office' => 'Accounting Office',
+];
+
+function canonicalNonTeachingOfficeName($rawDepartment) {
+    if (!$rawDepartment) return null;
+    $trimmed = trim($rawDepartment);
+    return LEGACY_OFFICE_NAME_ALIASES[strtolower($trimmed)] ?? $trimmed;
+}
 
 function canonicalTnaCollegeCode($rawDepartment) {
     if (!$rawDepartment) return null;

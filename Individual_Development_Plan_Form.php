@@ -9,6 +9,36 @@
 session_start();
 require_once 'config.php';
 
+// 2026-09-17 fix - ISO 25010 audit found this file had zero session or
+// role check anywhere: the save_admin_signatures action only verified the
+// target form's own status ('submitted_to_hr'), not who was submitting,
+// so any authenticated account (even a plain employee's) could complete
+// and sign someone else's IDP as HR. Matches the exact guard pattern
+// already used in admin_page.php - logged in, account still 'accepted',
+// and specifically the 'admin' role (this is the Main Admin / HR final
+// signature step, not a department admin's).
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
+$checkStatus = $con->prepare("SELECT status FROM users WHERE id = ?");
+$checkStatus->bind_param("i", $_SESSION['user_id']);
+$checkStatus->execute();
+$userData = $checkStatus->get_result()->fetch_assoc();
+$checkStatus->close();
+
+if (!$userData || $userData['status'] !== 'accepted') {
+    session_destroy();
+    header("Location: index.php");
+    exit();
+}
+
+if (($_SESSION['user_role'] ?? '') !== 'admin') {
+    header("Location: index.php");
+    exit();
+}
+
 /*
 |--------------------------------------------------------------------------
 | Helpers
@@ -416,7 +446,7 @@ $departments = [
     'CCJE'  => 'College of Criminal Justice Education',
     'CCS'   => 'College of Computer Studies',
     'CFND'  => 'College of Food Nutrition and Dietetics',
-    'CHMT'  => 'College of Hospitality and Tourism Management',
+    'CHMT'  => 'College of International Hospitality and Tourism Management (CIHTM)',
     'CIT'   => 'College of Industrial Technology',
     'COE'   => 'College of Engineering',
     'COF'   => 'College of Fisheries',

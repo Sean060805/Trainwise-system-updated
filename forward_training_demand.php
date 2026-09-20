@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -102,12 +103,9 @@ $message = 'HR has forwarded a training request for "' . $demand['title'] . '". 
 if ($budgetHint !== '') {
     $message .= ' HR\'s budget guidance: ' . $budgetHint . '.';
 }
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_demand', 0, NOW())");
 foreach ($deanIds as $deanId) {
-    $notifStmt->bind_param("isi", $deanId, $message, $demandId);
-    $notifStmt->execute();
+    notifyUser($con, $deanId, $message, $demandId, 'training_demand', "HR forwarded a training request: {$demand['title']}");
 }
-$notifStmt->close();
 
 logAuditEvent($con, $_SESSION['user_id'], $_SESSION['user_name'] ?? 'HR', $_SESSION['user_role'] ?? 'admin',
     'Forwarded to Dean', 'training_demand', $demandId,

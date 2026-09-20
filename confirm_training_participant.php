@@ -2,6 +2,7 @@
 session_start();
 require_once 'config.php';
 require_once 'ml_recommendations.php';
+require_once 'notification_email.php';
 
 header('Content-Type: application/json');
 
@@ -55,11 +56,9 @@ foreach (array_unique(array_filter(array_column($rows, 'demand_id'))) as $demand
     markTrainingDemandConfirmed($con, $demandId);
 }
 
-$notifStmt = $con->prepare("INSERT INTO notifications (user_id, message, related_id, related_type, is_read, created_at) VALUES (?, ?, ?, 'training_recommendation', 0, NOW())");
 foreach ($rows as $row) {
     $message = 'HR confirmed you for "' . $row['title'] . '". Upload the proof of completion to mark it complete.';
-    $notifStmt->bind_param("isi", $row['user_id'], $message, $row['id']);
-    $notifStmt->execute();
+    notifyUser($con, $row['user_id'], $message, $row['id'], 'training_recommendation', "You're confirmed: {$row['title']}");
 }
 
 // Everyone else still sitting at 'Training Available' for the SAME
@@ -94,13 +93,11 @@ if (!empty($demandIds)) {
 
         foreach ($remainderRows as $row) {
             $message = 'HR has finalized attendees for "' . $row['title'] . '" and you weren\'t selected this round. You may be prioritized if this training is offered again.';
-            $notifStmt->bind_param("isi", $row['user_id'], $message, $row['id']);
-            $notifStmt->execute();
+            notifyUser($con, $row['user_id'], $message, $row['id'], 'training_recommendation', "Update on your request: {$row['title']}");
         }
         $notSelectedCount = count($remainderRows);
     }
 }
-$notifStmt->close();
 
 $logDemandId = count($demandIds) === 1 ? $demandIds[0] : null;
 $titles = implode(', ', array_unique(array_column($rows, 'title')));

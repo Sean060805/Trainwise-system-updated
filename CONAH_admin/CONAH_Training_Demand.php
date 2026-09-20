@@ -504,9 +504,27 @@ if (count($parts) > 1) { $initials = strtoupper(substr($parts[0],0,1) . substr(e
                       <?php endif; ?>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:0.4rem;flex-shrink:0;align-items:stretch;">
+                      <!-- 2026-09-16 - real suggestion from a CFND faculty respondent:
+                           give whoever is sourcing this a running start instead of a
+                           blank Google search. Read-only research aid - results still
+                           need a human to verify and call before anything is promised
+                           to an employee as real (see search_training_providers.php's
+                           header comment for why this can't be fully automated). -->
+                      <button type="button" onclick="openSearchProvidersModal(<?= $d['id'] ?>, <?= htmlspecialchars(json_encode($d['title']), ENT_QUOTES) ?>)" style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;padding:0.45rem 0.75rem;border-radius:8px;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <i class="ri-search-eye-line"></i> Search for Providers
+                      </button>
                       <button type="button" class="btn btn-primary btn-sm" style="flex-shrink:0;"
                         onclick="openReportDemandModal(<?= $d['id'] ?>, <?= htmlspecialchars(json_encode($d['title']), ENT_QUOTES) ?>)">
                         <i class="ri-send-plane-line"></i> Report to HR
+                      </button>
+                      <!-- 2026-09-15 - per real-testing feedback (Mr. Mike Philip
+                           Ramos): "Report to HR" was the only action here, which
+                           only ever made sense if a dean is guaranteed to find
+                           SOMETHING - they're not. This is the honest alternative
+                           outcome, closing the loop instead of leaving the demand
+                           stuck at "Forwarded to Dean" forever. -->
+                      <button type="button" onclick="openRejectDemandModal(<?= $d['id'] ?>, <?= htmlspecialchars(json_encode($d['title']), ENT_QUOTES) ?>)" style="background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;padding:0.45rem 0.75rem;border-radius:8px;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <i class="ri-close-circle-line"></i> No Training Found
                       </button>
                       <button type="button" onclick="viewDemandRequesters(<?= $d['id'] ?>, <?= htmlspecialchars(json_encode($d['title']), ENT_QUOTES) ?>)" style="background:transparent;border:1px solid #94a3b8;color:#475569;padding:0.45rem 0.75rem;border-radius:8px;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;">
                         <i class="ri-eye-line"></i> View Requesters
@@ -664,6 +682,7 @@ const REQUESTER_STATUS_META = {
   'Confirmed': { label: 'Confirmed', color: '#059669', bg: 'rgba(5,150,105,0.1)' },
   'Completed': { label: 'Completed', color: '#047857', bg: 'rgba(4,120,87,0.1)' },
   'Not Selected': { label: 'Not Selected', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+  'Cancelled': { label: 'Cancelled', color: '#dc2626', bg: 'rgba(220,38,38,0.1)' },
 };
 
 function buildRequestersModalHtml() {
@@ -1011,6 +1030,103 @@ function openReportDemandModal(demandId, title) {
       showToast('ok', 'Reported', 'HR has been notified of the training you found.');
       setTimeout(() => location.reload(), 800);
     }
+  });
+}
+
+// 2026-09-15 - counterpart to openReportDemandModal() above, for the
+// honest "I looked, nothing's available" outcome (see report_training_demand.php's
+// sibling endpoint, reject_training_demand.php).
+function openRejectDemandModal(demandId, title) {
+  Swal.fire({
+    title: 'No Training Found',
+    width: 520,
+    customClass: { popup: 'rounded-2xl' },
+    didOpen: () => {
+      const t = document.querySelector('.swal2-title');
+      if (t) t.style.cssText = "font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1.35rem;color:#0f172a;";
+    },
+    html: `
+      <p style="font-size:0.82rem;color:#64748b;text-align:left;margin-bottom:0.8rem;">${title}</p>
+      <p style="font-size:0.82rem;color:#334155;text-align:left;margin-bottom:0.8rem;">Every requester on this will be notified that it was cancelled, along with the reason below.</p>
+      <textarea id="rejectDemandReason" rows="3" placeholder="e.g. No available provider offers this in Region IV-A, and no online equivalent was found either."
+        style="width:100%;padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;font-size:0.85rem;box-sizing:border-box;resize:none;"></textarea>
+    `,
+    confirmButtonText: 'Confirm - No Training Found',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    showCancelButton: true,
+    focusConfirm: false,
+    allowOutsideClick: false,
+    preConfirm: () => {
+      const reason = document.getElementById('rejectDemandReason').value.trim();
+      if (!reason) { Swal.showValidationMessage('Please explain why no training could be found.'); return false; }
+      const body = new URLSearchParams({ demand_id: demandId, reason });
+      return fetch('../reject_training_demand.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+        .then(r => r.json())
+        .then(data => { if (!data.success) { Swal.showValidationMessage(data.message || 'Could not cancel this demand.'); return false; } return data; })
+        .catch(() => { Swal.showValidationMessage('Could not cancel this demand.'); return false; });
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      showToast('ok', 'Cancelled', 'Requesters have been notified.');
+      setTimeout(() => location.reload(), 800);
+    }
+  });
+}
+
+// 2026-09-16 - "Search for Providers" research-assist. Read-only, no
+// state change on this demand - just a starting point for whoever's
+// sourcing it, pulled from real, legitimate training-provider sites
+// (never an open web search - see search_training_providers.php's
+// header comment for the real, live-tested reason why).
+function openSearchProvidersModal(demandId, title) {
+  Swal.fire({
+    title: 'Search for Providers',
+    width: 640,
+    customClass: { popup: 'rounded-2xl' },
+    didOpen: () => {
+      const t = document.querySelector('.swal2-title');
+      if (t) t.style.cssText = "font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:1.35rem;color:#0f172a;";
+      Swal.showLoading();
+      fetch(`../search_training_providers.php?demand_id=${demandId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            Swal.update({ html: `<p style="font-size:0.85rem;color:#64748b;text-align:left;">${data.message || 'Could not search right now.'}</p>`, showConfirmButton: true, confirmButtonText: 'Close' });
+            Swal.hideLoading();
+            return;
+          }
+          if (data.results.length === 0) {
+            Swal.update({ html: `<p style="font-size:0.85rem;color:#64748b;text-align:left;">No results found among ${data.domains_searched.join(', ')}. Try contacting them directly, or use "No Training Found" if nothing turns up.</p>`, showConfirmButton: true, confirmButtonText: 'Close' });
+            Swal.hideLoading();
+            return;
+          }
+          const resultsHtml = data.results.map(r => `
+            <div style="border:1px solid #e5e7eb;border-radius:10px;padding:0.7rem 0.9rem;margin-bottom:0.6rem;text-align:left;">
+              <a href="${r.link}" target="_blank" rel="noopener" style="font-weight:700;font-size:0.86rem;color:#1d4ed8;text-decoration:none;">${r.title}</a>
+              <p style="font-size:0.72rem;color:#16a34a;margin:0.15rem 0;">${r.displayed_link}</p>
+              <p style="font-size:0.8rem;color:#475569;margin:0;">${r.snippet}</p>
+            </div>
+          `).join('');
+          Swal.update({
+            html: `
+              <p style="font-size:0.78rem;color:#94a3b8;text-align:left;margin-bottom:0.7rem;">Real results from ${data.domains_searched.join(', ')} - verify and contact before promising anything to an employee.</p>
+              <div style="max-height:400px;overflow-y:auto;">${resultsHtml}</div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'Close'
+          });
+          Swal.hideLoading();
+        })
+        .catch(() => {
+          Swal.update({ html: `<p style="font-size:0.85rem;color:#64748b;text-align:left;">Could not search right now. Please try again.</p>`, showConfirmButton: true, confirmButtonText: 'Close' });
+          Swal.hideLoading();
+        });
+    },
+    html: '<p style="font-size:0.82rem;color:#64748b;">Searching real training-provider sites...</p>',
+    showConfirmButton: false,
+    confirmButtonColor: '#1d4ed8',
+    allowOutsideClick: true,
   });
 }
 

@@ -116,6 +116,19 @@ try {
         $start_time = trim($entry['start_time'] ?? '');
         $end_time = trim($entry['end_time'] ?? '');
         $venue = trim($entry['venue'] ?? '');
+        // 2026-09-17 addition - real feedback from the first ~20
+        // respondents: Venue used to be required unconditionally, so
+        // anyone reporting a genuinely online past training had no way
+        // to say so and typed workarounds like "Online" into a field
+        // labeled Venue. Training Type matches the same vocabulary
+        // already used in the training-demand pipeline
+        // (create_dean_sourced_training.php/report_training_demand.php).
+        $training_type = trim($entry['training_type'] ?? '');
+        $training_type_other = trim($entry['training_type_other'] ?? '');
+        $modality = trim($entry['modality'] ?? '');
+        if (!in_array($modality, ['Face-to-Face', 'Online'], true)) {
+            $modality = 'Face-to-Face';
+        }
 
         // Only validate if we have at least a training title
         if (!empty($training)) {
@@ -158,8 +171,13 @@ try {
                 }
             }
 
-            // Validate required fields for complete entries
-            if (!empty($date) && (empty($start_time) || empty($end_time) || empty($venue))) {
+            // Validate required fields for complete entries. Venue is only
+            // required when the training was Face-to-Face - an Online
+            // entry has no venue to give. "Specify Training Type" is only
+            // required when Training Type is "Other".
+            $venueOk = $modality === 'Online' || !empty($venue);
+            $typeOk = !empty($training_type) && ($training_type !== 'Other' || !empty($training_type_other));
+            if (!empty($date) && (empty($start_time) || empty($end_time) || !$venueOk || !$typeOk)) {
                 throw new Exception("Please complete all fields for training entry #" . ($index + 1));
             }
 
@@ -171,7 +189,10 @@ try {
                 'end_time' => $end_time,
                 'duration' => trim($entry['duration'] ?? ''),
                 'training' => $training,
-                'venue' => $venue
+                'venue' => $modality === 'Online' ? '' : $venue,
+                'training_type' => $training_type,
+                'training_type_other' => $training_type === 'Other' ? $training_type_other : '',
+                'modality' => $modality
             ];
 
             $cleaned_training_data[] = $cleaned_entry;

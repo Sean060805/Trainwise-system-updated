@@ -44,7 +44,16 @@ $departments = [
   'CIT' => 'College of Industrial Technology (CIT)',
   'CFND' => 'College of Food, Nutrition and Dietetics (CFND)',
   'COF' => 'College of Fisheries (COF)',
-  'CIHTM' => 'College of International Hospitality and Tourism Management (CIHTM)',
+  // 2026-09-17 fix - this was the actual root cause of real employees
+  // ending up with department='CIHTM' while the college's own dean
+  // account (set up separately, earlier) is 'CHMT': this registration
+  // dropdown's option VALUE was literally 'CIHTM', so every new signup
+  // who picked this college got that stored, never matching the dean's
+  // code anywhere role-derivation or reporting depends on it. Value
+  // changed to 'CHMT' (matching the dean's account and every other
+  // reference to this college in the codebase) - label kept as the
+  // college's real name/acronym.
+  'CHMT' => 'College of International Hospitality and Tourism Management (CIHTM)',
   'CTE' => 'College of Teacher Education (CTE)',
   'CONAH' => 'College of Nursing and Allied Health (CONAH)',
   'COL' => 'College of Law (COL)'
@@ -62,6 +71,12 @@ $departments = [
 // from already reads top-to-bottom in this exact order.
 $facultyRanks = [
   'Instructor I', 'Instructor II', 'Instructor III',
+  // 2026-09-17 - not part of the official salary-grade ladder above (part-
+  // time faculty are paid per-unit, not on this scale), but added anyway:
+  // real feedback from the first ~20 testers found most of them are
+  // part-time and had no matching option, falling through to free-text
+  // Other for what's actually a common, real designation.
+  'Part-Time Instructor',
   'Assistant Professor I', 'Assistant Professor II', 'Assistant Professor III', 'Assistant Professor IV',
   'Associate Professor I', 'Associate Professor II', 'Associate Professor III', 'Associate Professor IV', 'Associate Professor V',
   'Professor I', 'Professor II', 'Professor III', 'Professor IV', 'Professor V', 'Professor VI',
@@ -150,13 +165,6 @@ $roleNames = [
   <!-- Tailwind CSS CDN -->
   <link rel="stylesheet" href="assets/css/tw-45.css">
 
-  <!-- jQuery para sa autocomplete -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-  <!-- jQuery UI para sa autocomplete widget -->
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -165,9 +173,6 @@ $roleNames = [
 
   <!-- External CSS -->
   <link rel="stylesheet" href="test_style.css" />
-
-  <!-- particles.js -->
-  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
 
   <!-- Animate.css for smooth animations -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -189,6 +194,10 @@ $roleNames = [
       --slate-strong: #37485C;
       --slate-soft: #CBD8E3;
       --border-soft: #E8DDD0;
+      /* 2026-09-16 makeover - was referenced by .notification-error below
+         but never actually defined, so that border silently fell back to
+         nothing. Small real bug fix, found while redesigning this file. */
+      --danger: #DC2626;
     }
 
     html, body {
@@ -201,11 +210,45 @@ $roleNames = [
       color: var(--ink);
     }
 
+    /* 2026-09-16 makeover - replaces the particles.js canvas + heavy
+       diagonal gradient. A physics canvas of drifting dots reads as a
+       template demo, not an official university portal - this keeps the
+       exact same brand colors (royal/forest/gold, unchanged) but as a
+       calm, fixed backdrop: a deep navy-to-royal base with two large,
+       soft, out-of-focus color fields (a common "modern SaaS auth
+       screen" treatment) instead of 70 moving particles competing with
+       the form for attention. Zero JS, zero canvas, zero moving parts -
+       lighter to load and calmer to look at. */
     body {
-      background:
-        radial-gradient(circle at 15% 12%, rgba(212, 168, 67, 0.15), transparent 45%),
-        radial-gradient(circle at 85% 88%, rgba(26, 75, 140, 0.20), transparent 50%),
-        linear-gradient(160deg, #0A1628 0%, #1A4B8C 45%, #0D2B1A 100%);
+      position: relative;
+      background: linear-gradient(165deg, #0A1628 0%, #123B6E 48%, #0D2B1A 100%);
+      overflow: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      width: 620px;
+      height: 620px;
+      top: -180px;
+      left: -160px;
+      background: radial-gradient(circle, rgba(212, 168, 67, 0.30), transparent 70%);
+    }
+
+    body::after {
+      width: 720px;
+      height: 720px;
+      bottom: -240px;
+      right: -200px;
+      background: radial-gradient(circle, rgba(26, 75, 140, 0.38), transparent 70%);
     }
 
     .font-display { font-family: 'Fraunces', serif; }
@@ -237,6 +280,8 @@ $roleNames = [
 
     /* Para siguradong 100% viewport height ang main container */
     .page-wrap {
+      position: relative;
+      z-index: 1;
       min-height: 100vh;
       min-height: 100dvh;
       height: 100vh;
@@ -384,41 +429,46 @@ $roleNames = [
     }
 
     /* ===================================================
-       LOGIN CONTAINER - certificate / official-portal frame
+       LOGIN CONTAINER - clean, modern card
        =================================================== */
-    /* 2026-09-09 makeover - the previous version leaned on a heavy gold
-       treatment throughout: a warm cream-tinted gradient, a gold-tinted
-       border, a gold glow ring in the box-shadow, AND gold "certificate"
-       corner brackets - four separate places pushing the same yellow,
-       which read as dated/fussy rather than clean. This keeps the card
-       itself a crisp, clean white with a soft neutral shadow; gold is
-       now spent in exactly one place (the seal ring behind the logo,
-       where it's the actual brand emblem) instead of framing everything. */
+    /* 2026-09-16 makeover ("I don't feel the vibe... more professional") -
+       keeps the same crisp white card + neutral shadow from the previous
+       pass, tightened further: a single flat border instead of a
+       border+inset-highlight combo, a calmer shadow (no hover-triggered
+       jump), and a touch more corner radius for a softer, more current
+       feel. Brand color (royal/gold) still only appears in the seal and
+       the buttons - the card itself stays quiet so the content reads
+       clearly, which is the actual "professional" signal. */
     .login-container {
       position: relative;
       z-index: 10;
       display: flex;
       flex-direction: column;
       background: #ffffff;
-      backdrop-filter: blur(14px) saturate(140%);
-      -webkit-backdrop-filter: blur(14px) saturate(140%);
-      border-radius: 1.1rem;
-      padding: 1.8rem 1.8rem 1.6rem;
-      padding-top: 3rem;
+      border-radius: 1.35rem;
+      padding: 2rem 2rem 1.75rem;
+      padding-top: 3.1rem;
       width: 100%;
       max-width: 480px;
       box-shadow:
-        0 30px 60px -18px rgba(2, 8, 20, 0.45),
-        0 0 0 1px rgba(22, 35, 58, 0.06),
-        inset 0 1px 1px rgba(255, 255, 255, 0.7);
-      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1), box-shadow 0.4s ease;
-      border: 1px solid var(--border-soft);
+        0 24px 60px -20px rgba(2, 8, 20, 0.5),
+        0 1px 2px rgba(2, 8, 20, 0.06);
+      border: 1px solid rgba(22, 35, 58, 0.06);
       overflow: visible;
     }
 
     /* ===================================================
-       LOGO / SEAL - layered emblem with engraved ring
+       LOGO / SEAL - clean static emblem
        =================================================== */
+    /* 2026-09-16 makeover - the previous seal spun a ring of microtext
+       around the logo continuously. Constant motion behind a form
+       someone is trying to read/type into is the opposite of "calm and
+       professional" - this keeps the same wrapper geometry (so the
+       auto-fit measurement JS above needs zero changes) but replaces the
+       spinning text ring with one still, soft gold ring and drops the
+       floating bob animation on the logo itself. The emblem now just
+       sits there, the way a university seal on an official letterhead
+       does. */
     .logo-wrapper {
       position: absolute;
       top: -102px;
@@ -438,37 +488,24 @@ $roleNames = [
       inset: 0;
       width: 100%;
       height: 100%;
-      animation: sealSpin 46s linear infinite;
-    }
-
-    .seal-ring text {
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 600;
-    }
-
-    @keyframes sealSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
     }
 
     .logo-wrapper .logo-circle {
       position: relative;
-      width: 128px;
-      height: 128px;
+      width: 124px;
+      height: 124px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ffffff 0%, #f5eddf 100%);
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow:
-        0 14px 30px -10px rgba(2, 8, 20, 0.55),
-        0 0 0 5px rgba(255, 255, 255, 0.92),
-        0 0 0 7px rgba(212, 168, 67, 0.55);
+        0 16px 32px -12px rgba(2, 8, 20, 0.5),
+        0 0 0 6px rgba(255, 255, 255, 0.95),
+        0 0 0 8px rgba(212, 168, 67, 0.5);
       border: none;
       overflow: hidden;
-      padding: 10px;
-      transition: none;
-      animation: logoFloat 3s ease-in-out infinite;
+      padding: 12px;
     }
 
     .logo-wrapper .logo-circle img {
@@ -479,21 +516,10 @@ $roleNames = [
       image-rendering: auto;
     }
 
-    @keyframes logoFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-
-    .main-container:hover .logo-wrapper .logo-circle {
-      transform: none;
-    }
-
     .main-container:hover .login-container {
-      transform: translateY(4px);
       box-shadow:
-        0 38px 70px -18px rgba(2, 8, 20, 0.6),
-        0 0 0 1px rgba(212, 168, 67, 0.45),
-        inset 0 1px 1px rgba(255, 255, 255, 0.7);
+        0 30px 70px -18px rgba(2, 8, 20, 0.55),
+        0 1px 2px rgba(2, 8, 20, 0.06);
     }
 
     .card-body {
@@ -956,36 +982,30 @@ $roleNames = [
       margin-right: 0.4rem;
     }
 
+    /* 2026-09-16 makeover - bigger tap targets and a left-aligned
+       icon+text layout instead of the old cramped, centered stack (icon
+       chip / bold title / tiny caption all squeezed into ~12px of
+       padding) - reads as a real selectable option now, not a small
+       decorative tile. Same onclick="showRoleForm(...)" hooks, so this
+       is a pure visual change. */
     .role-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       border: 1.5px solid var(--border-soft);
-      border-radius: 12px;
-      padding: 12px 8px;
+      border-radius: 14px;
+      padding: 14px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-      text-align: center;
-      margin-bottom: 6px;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      text-align: left;
       background: #ffffff;
       position: relative;
-      overflow: hidden;
-    }
-
-    .role-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(212,168,67,0.08), rgba(26,75,140,0.05));
-      opacity: 0;
-      transition: opacity 0.3s ease;
     }
 
     .role-card:hover {
       border-color: var(--gold);
       transform: translateY(-2px);
-      box-shadow: 0 10px 22px -10px rgba(0, 15, 35, 0.3);
-    }
-
-    .role-card:hover::before {
-      opacity: 1;
+      box-shadow: 0 12px 24px -12px rgba(0, 15, 35, 0.28);
     }
 
     .role-card.selected {
@@ -993,84 +1013,83 @@ $roleNames = [
       background-color: var(--gold-soft);
     }
 
-    .role-card i,
-    .role-card h3,
-    .role-card p {
-      position: relative;
-      z-index: 1;
-    }
-
     .role-icon-chip {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 6px;
-      font-size: 1rem;
+      font-size: 1.2rem;
       color: #fff;
-      transition: transform 0.3s ease;
     }
 
-    .role-card:hover .role-icon-chip {
-      transform: scale(1.08);
+    /* Groups the title+caption as one stacked column next to the icon -
+       without this, h3/p were separate flex siblings alongside the icon
+       and the caption wrapped into a cramped, misaligned strip. */
+    .role-card-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     .role-card h3 {
       font-family: 'Fraunces', serif;
       font-weight: 600;
-      margin-bottom: 2px;
-      font-size: 0.82rem;
+      margin-bottom: 1px;
+      font-size: 0.92rem;
       color: var(--ink);
+      line-height: 1.2;
     }
 
     .role-card p {
-      font-size: 0.65rem;
+      font-size: 0.74rem;
       color: var(--ink-soft);
       margin: 0;
+      line-height: 1.3;
     }
 
     .role-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 10px;
     }
 
     .department-select {
       width: 100%;
-      padding: 14px 36px 14px 16px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      padding: 14px 38px 14px 16px;
+      background: #FAFBFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
       outline: none;
       font-size: 18px;
-      color: #333;
+      color: var(--ink);
       appearance: none;
-      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='12' height='8' viewBox='0 0 10 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 6L9 1' stroke='%23333' stroke-width='2'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='12' height='8' viewBox='0 0 10 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 6L9 1' stroke='%2352627B' stroke-width='2'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-position: right 14px center;
       background-size: 12px 8px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
 
     .department-select:focus {
       border-color: var(--royal);
-      box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.15);
+      box-shadow: 0 0 0 4px rgba(26, 75, 140, 0.12);
       background-color: #fff;
     }
 
     .form-input {
       width: 100%;
       padding: 14px 16px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      background: #FAFBFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
       outline: none;
       font-size: 18px;
-      color: #333;
-      transition: all 0.3s ease;
+      color: var(--ink);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     }
 
     /* 2026-09-09 - real accessibility feedback: the real user base is
@@ -1086,6 +1105,18 @@ $roleNames = [
     .reg-field {
       font-size: 18px !important;
       padding: 14px 16px !important;
+      /* 2026-09-16 makeover - matches .form-input/.department-select's new
+         look (same !important reasoning as font-size/padding above: this
+         page's Tailwind build is a purged bundle, cascade order against
+         whatever utilities survived isn't reliable). */
+      background: #FAFBFC !important;
+      border: 1.5px solid #E2E8F0 !important;
+      border-radius: 10px !important;
+    }
+
+    .reg-field:focus {
+      background: #ffffff !important;
+      border-color: var(--royal) !important;
     }
 
     /* 2026-09-09 - second round, same accessibility ask ("make them
@@ -1093,16 +1124,35 @@ $roleNames = [
        16px -> 18px; this round covers everything that was still at its
        original small size: labels, the submit button, and the badge/
        title/eyebrow bumped earlier get bumped again to match. */
+    /* !important because .compact-form label (defined later in this file,
+       same specificity) was winning the cascade and holding every
+       registration label down at 0.95rem (~15px) despite this rule -
+       confirmed live via computed styles, not just theorized. */
     .role-specific-form label {
-      font-size: 16px;
+      font-size: 19px !important;
     }
 
-    .role-specific-form form > p {
-      font-size: 16px;
+    /* 2026-09-16 - real, reported bug found while making another round
+       of text bigger per accessibility feedback: "form > p" only matches
+       a <p> that's a DIRECT child of <form>, but "Use your official LSPU
+       email address" sits one level deeper (inside the field's own
+       wrapper <div>), so this rule was never actually applying to it -
+       it had been rendering at Tailwind's text-xs (~12px) the whole
+       time. Matches on the exact class combo instead, at any depth. */
+    .role-specific-form p.text-xs.text-gray-500 {
+      font-size: 15px !important;
+    }
+
+    /* "Don't have an account? Register here" / "Already have an
+       account? Login here" - same text-xs default, same fix. Not
+       scoped to .role-specific-form since the login form's version
+       lives outside it. */
+    p.text-xs.text-gray-600 {
+      font-size: 16px !important;
     }
 
     .reg-field::placeholder {
-      font-size: 15px;
+      font-size: 16px;
     }
 
     /* 2026-09-09 - First/M.I./Last Name row for the 4 registration forms.
@@ -1114,10 +1164,39 @@ $roleNames = [
        collapses to a plain stacked block, which is exactly the "awkward"
        layout this replaces. M.I. gets a narrow fixed column since it's
        at most a couple characters; First/Last share the rest evenly. */
+    /* 2026-09-16 - "Full Name" should read as a section header over the
+       First/M.I./Last row, not just another field label at the same
+       weight as everything else. The row of 3 name fields right below
+       this (.name-fields-row) is untouched, per explicit instruction. */
+    .name-section-label {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
     .name-fields-row {
       display: grid;
       grid-template-columns: 1fr 76px 1fr;
       gap: 10px;
+    }
+
+    /* 2026-09-16 - same purged-Tailwind gotcha as .name-fields-row above:
+       "sm:grid-cols-2" was never used by the original templates this
+       bundle was compiled from, so it silently compiles to nothing and
+       the two Development Team cards collapsed to a single stacked
+       column instead of sitting side by side. Real CSS grid, like every
+       other fix for this class of bug on this page. */
+    .team-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .team-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .name-fields-row .form-input {
@@ -1126,8 +1205,24 @@ $roleNames = [
 
     .form-input:focus {
       border-color: var(--royal);
-      box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.15);
+      box-shadow: 0 0 0 4px rgba(26, 75, 140, 0.12);
       background: #fff;
+    }
+
+    /* 2026-09-16 - the Non-Teaching form's two dropdowns use .form-input
+       (shared with plain text inputs) rather than .department-select, so
+       they rendered with the browser's default select arrow instead of
+       the custom chevron every other dropdown on this page uses -
+       inconsistent within the same form. Scoped to select.form-input so
+       text inputs sharing the class are unaffected. */
+    select.form-input {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='12' height='8' viewBox='0 0 10 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 6L9 1' stroke='%2352627B' stroke-width='2'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 12px 8px;
+      padding-right: 38px;
+      cursor: pointer;
     }
 
     .left-panel {
@@ -1222,132 +1317,108 @@ $roleNames = [
       to { transform: rotate(360deg); }
     }
 
-    /* IBA'T IBANG SIZE NG MGA BUTTONS */
+    /* 2026-09-16 makeover - same three brand gradients (royal/forest),
+       consistent radius/weight system across all four button roles
+       instead of four slightly different font-sizes and border-radii.
+       Dropped the ripple pseudo-element (.btn::after) and the
+       active:scale(0.95) squash - a clean, slightly-lifted hover plus a
+       real focus-visible ring reads as more deliberate/professional than
+       a bouncing click effect, and works better for keyboard users. */
+    .btn-login,
+    .btn-register,
+    .btn-submit,
+    .btn-signin {
+      border-radius: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .btn-login:focus-visible,
+    .btn-register:focus-visible,
+    .btn-submit:focus-visible,
+    .btn-signin:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
     .btn-login {
-      font-size: 1rem;
-      padding: 0.8rem 1rem;
+      font-size: 1.05rem;
+      padding: 0.95rem 1rem;
       background: linear-gradient(135deg, var(--royal) 0%, var(--royal-2) 100%);
       color: white;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      letter-spacing: 0.3px;
-      box-shadow: 0 10px 24px -8px rgba(26, 75, 140, 0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+      box-shadow: 0 12px 26px -10px rgba(26, 75, 140, 0.55);
     }
 
     .btn-login:hover {
       transform: translateY(-2px);
-      box-shadow: 0 14px 30px -8px rgba(26, 75, 140, 0.65), inset 0 1px 0 rgba(255,255,255,0.3);
+      filter: brightness(1.06);
+      box-shadow: 0 16px 32px -10px rgba(26, 75, 140, 0.6);
     }
 
     .btn-register {
-      font-size: 0.9rem;
-      padding: 0.62rem 0.85rem;
-      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
-      color: white;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      letter-spacing: 0.3px;
-      box-shadow: 0 10px 24px -8px rgba(13, 107, 77, 0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+      font-size: 1.05rem;
+      padding: 0.9rem 1rem;
+      background: #ffffff;
+      color: var(--forest);
+      border: 1.5px solid var(--forest);
+      box-shadow: none;
     }
 
     .btn-register:hover {
+      background: #F0FAF6;
       transform: translateY(-2px);
-      box-shadow: 0 14px 30px -8px rgba(13, 107, 77, 0.6), inset 0 1px 0 rgba(255,255,255,0.3);
     }
 
     .btn-submit {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       padding: 0.95rem 1rem;
       background: linear-gradient(135deg, var(--royal) 0%, var(--royal-2) 100%);
       color: white;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 12px 26px -10px rgba(26, 75, 140, 0.5);
     }
 
     .btn-submit:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px -8px rgba(26, 75, 140, 0.45);
+      box-shadow: 0 16px 32px -10px rgba(26, 75, 140, 0.55);
     }
 
     .btn-signin {
-      font-size: 0.95rem;
-      padding: 0.68rem 0.85rem;
+      font-size: 1.05rem;
+      padding: 0.95rem 1rem;
       background: linear-gradient(135deg, var(--royal) 0%, var(--royal-2) 100%);
       color: white;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 12px 26px -10px rgba(26, 75, 140, 0.5);
     }
 
     .btn-signin:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px -8px rgba(26, 75, 140, 0.45);
-    }
-
-    .btn::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    .btn:hover::after {
-      width: 300px;
-      height: 300px;
+      box-shadow: 0 16px 32px -10px rgba(26, 75, 140, 0.55);
     }
 
     .btn:active {
-      transform: scale(0.95);
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-      100% { transform: scale(1); }
-    }
-
-    .btn-pulse {
-      animation: pulse 2s infinite;
+      transform: translateY(0);
     }
 
     .role-specific-form {
-      /* 2026-09-09 makeover - was --cream-dim (a tan/gold tint) - a cool
-         neutral matching .form-input's own background reads as a clean
-         "inset panel" instead of adding another layer of yellow. */
       background: #F8F9FB;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 22px 24px;
       margin-top: 10px;
       border: 1px solid var(--border-soft);
     }
 
+    /* 2026-09-16 makeover - bumped from a 0.63rem all-caps micro-tag to a
+       readable pill that actually states which registration this is,
+       matching the "big and readable" ask everywhere else on this form. */
     .role-badge {
       display: inline-block;
-      padding: 3px 12px;
+      padding: 5px 14px;
       border-radius: 20px;
-      font-size: 0.63rem;
-      font-family: 'Space Grotesk', sans-serif;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.01em;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .badge-user {
@@ -1373,24 +1444,24 @@ $roleNames = [
     .back-to-roles {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       color: var(--royal);
-      font-size: 0.75rem;
-      font-weight: 500;
+      font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
-      margin-bottom: 10px;
-      padding: 3px 8px;
+      margin-bottom: 12px;
+      padding: 5px 10px;
       border-radius: 20px;
-      transition: all 0.3s ease;
+      transition: background-color 0.2s ease, transform 0.2s ease;
     }
 
     .back-to-roles:hover {
-      background-color: #E8DCC8;
-      transform: translateX(-4px);
+      background-color: var(--gold-soft);
+      transform: translateX(-3px);
     }
 
     .back-to-roles i {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
     }
 
     .role-form-container {
@@ -1412,29 +1483,6 @@ $roleNames = [
       display: block;
       opacity: 1;
       transform: translateY(0);
-    }
-
-    .ui-autocomplete {
-      max-height: 200px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      z-index: 1000 !important;
-      border-radius: 8px;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .ui-menu-item {
-      padding: 8px 12px;
-    }
-
-    .ui-menu-item:hover {
-      background-color: #E8DCC8;
-    }
-
-    .ui-state-active {
-      background-color: var(--royal) !important;
-      border-color: var(--royal) !important;
-      color: white !important;
     }
 
     /* Compact styles para sa forms.
@@ -1465,16 +1513,18 @@ $roleNames = [
 
     .tracker-title {
       font-family: 'Fraunces', serif;
-      font-size: 1.55rem;
-      margin-bottom: 2px;
-      font-weight: 600;
+      font-size: 1.7rem;
+      margin-bottom: 4px;
+      font-weight: 700;
       color: var(--ink);
+      letter-spacing: -0.01em;
     }
 
     .tracker-subtitle {
-      font-size: 0.78rem;
-      margin-bottom: 10px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
       color: var(--ink-soft);
+      line-height: 1.4;
     }
 
     /* ===== MOBILE / RESPONSIVE ===== */
@@ -1721,10 +1771,6 @@ $roleNames = [
         transition-duration: 0.001ms !important;
         scroll-behavior: auto !important;
       }
-      .logo-wrapper .logo-circle,
-      .seal-ring {
-        animation: none !important;
-      }
       .fit-container {
         transition: none !important;
       }
@@ -1732,7 +1778,6 @@ $roleNames = [
   </style>
 </head>
 <body>
-<div id="particles-js"></div>
 
 <!-- Notification area -->
 <div class="notification" id="notificationArea">
@@ -1842,13 +1887,13 @@ $roleNames = [
 
     <div class="dossier-card mb-6">
       <p style="color:var(--ink); line-height:1.65;">
-        The <strong style="color:var(--royal);">LSPU Training Tracker System</strong> is a digital platform built to document and manage professional development activity across the Los Baños campus. Whether you're a faculty member, non-teaching personnel, or administrative staff, every learning opportunity you complete gets recorded, organized, and made easy to retrieve later.
+        The <strong style="color:var(--royal);">LSPU Training Tracker System</strong> is an AI-assisted platform built for the Los Baños campus. It matches every faculty member, non-teaching personnel, or administrative staff to the trainings that matter for their role, then carries that request all the way through to a real, sourced training — from a personalized recommendation, to pooled institutional demand, to a college dean sourcing a provider, to a completed, documented record.
       </p>
     </div>
 
     <div class="pull-quote mb-6">
       <i class="ri-double-quotes-l"></i>
-      <p>Stay organized. Stay updated. Stay empowered with one centralized training record.</p>
+      <p>From a personalized recommendation to a completed, documented training — one connected pipeline.</p>
     </div>
 
     <div class="stat-strip mb-8">
@@ -1857,12 +1902,12 @@ $roleNames = [
         <span class="stat-label">User Roles</span>
       </div>
       <div class="stat">
-        <span class="stat-num">1</span>
-        <span class="stat-label">Central Dashboard</span>
+        <span class="stat-num">2</span>
+        <span class="stat-label">AI Models</span>
       </div>
       <div class="stat">
-        <span class="stat-num">24h</span>
-        <span class="stat-label">Typical Verification</span>
+        <span class="stat-num">13</span>
+        <span class="stat-label">Colleges Connected</span>
       </div>
       <div class="stat">
         <span class="stat-num">Digital</span>
@@ -1876,60 +1921,60 @@ $roleNames = [
     <div class="feature-grid mb-8">
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#1A4B8C,#0F3460);">
-          <i class="ri-calendar-todo-fill"></i>
+          <i class="ri-sparkling-2-fill"></i>
         </div>
-        <h4>Training Management</h4>
-        <p>Schedule, document, and track every professional development activity in one place.</p>
+        <h4>AI-Powered Recommendations</h4>
+        <p>An XGBoost + SBERT recommendation engine matches each employee to trainings based on their role, profile, and stated needs.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#0D6B4D,#084A34);">
-          <i class="ri-line-chart-fill"></i>
+          <i class="ri-git-branch-fill"></i>
         </div>
-        <h4>Progress Tracking</h4>
-        <p>See your training progress against university-mandated requirements at a glance.</p>
+        <h4>Training Demand Pipeline</h4>
+        <p>Real employee requests are pooled by HR, routed to college deans to source a paid provider, and tracked through to completion.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#1A4B8C,#0F3460);">
-          <i class="ri-file-chart-line"></i>
+          <i class="ri-file-list-3-fill"></i>
         </div>
-        <h4>Automated Reporting</h4>
-        <p>Generate reports for performance reviews, accreditation, and compliance purposes.</p>
+        <h4>Individual Development Plans</h4>
+        <p>Document long-term and short-term growth goals, with digital sign-off from employee, supervisor, and campus director.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#D4A843,#B8922A);">
-          <i class="ri-team-fill"></i>
+          <i class="ri-bar-chart-box-fill"></i>
         </div>
-        <h4>Collaboration Tools</h4>
-        <p>Coordinate training initiatives across departments and share resources with colleagues.</p>
+        <h4>Reports & Analytics</h4>
+        <p>Track completion rates, training demographics, and monthly training trends across every college.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#5B7288,#37485C);">
-          <i class="ri-upload-cloud-fill"></i>
+          <i class="ri-history-fill"></i>
         </div>
-        <h4>Document Storage</h4>
-        <p>Securely store and access training certificates and supporting documents.</p>
+        <h4>Audit Log</h4>
+        <p>A full accountability trail of key actions across the system, from approvals to demand-pipeline decisions.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon" style="background:linear-gradient(135deg,#16233A,#1A4B8C);">
           <i class="ri-notification-fill"></i>
         </div>
-        <h4>Reminders & Alerts</h4>
-        <p>Get timely notifications for upcoming trainings and compliance deadlines.</p>
+        <h4>Real-Time Notifications</h4>
+        <p>Get timely alerts for deadlines, approvals, and training updates as your request moves through the pipeline.</p>
       </div>
     </div>
 
     <div class="dossier-card mb-8" style="background:var(--cream-dim); border-color:#E8DDD0;">
       <h3 class="section-heading">System Benefits</h3>
       <ul class="space-y-2.5" style="color:var(--ink-soft); font-size:0.88rem; line-height:1.5;">
-        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Streamlines training documentation for all university personnel</li>
-        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Gives real-time visibility into training compliance across departments</li>
-        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Reduces administrative burden through automated reporting</li>
-        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Supports accurate record-keeping for accreditation purposes</li>
+        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Matches every employee to relevant trainings using AI, not a generic catalog list</li>
+        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Pools real training demand across all 13 colleges instead of one-off requests</li>
+        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Gives HR and college deans a clear pipeline from request to a sourced, confirmed training</li>
+        <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Keeps a full audit trail of key decisions for accountability and accreditation</li>
         <li class="flex items-start gap-2"><i class="ri-check-line" style="color:var(--royal); margin-top:3px;"></i> Makes training history easy to find for professional growth reviews</li>
       </ul>
     </div>
@@ -1960,19 +2005,19 @@ $roleNames = [
       <div>
         <div class="step-row">
           <div class="step-num">1</div>
-          <div><h5>Document past trainings</h5><p>Add your completed training activities to your record.</p></div>
+          <div><h5>Take your Training Needs Assessment</h5><p>Tell the system what skills or trainings you're looking for.</p></div>
         </div>
         <div class="step-row">
           <div class="step-num">2</div>
-          <div><h5>Register for sessions</h5><p>Sign up for upcoming training sessions in your college or office.</p></div>
+          <div><h5>Get AI-matched recommendations</h5><p>Review trainings picked specifically for your role and stated needs.</p></div>
         </div>
         <div class="step-row">
           <div class="step-num">3</div>
-          <div><h5>Upload documents</h5><p>Attach supporting certificates and materials.</p></div>
+          <div><h5>Accept a recommendation</h5><p>Your request joins the pooled demand HR and your college dean act on.</p></div>
         </div>
         <div class="step-row">
           <div class="step-num">4</div>
-          <div><h5>Generate reports</h5><p>Pull training reports whenever you need them.</p></div>
+          <div><h5>Upload proof once confirmed</h5><p>Once you're confirmed for a training, upload your certificate to complete the record.</p></div>
         </div>
       </div>
     </div>
@@ -1990,6 +2035,10 @@ $roleNames = [
       <details class="faq-item">
         <summary>Can I update my department or position later?</summary>
         <p>Yes — once logged in, profile details can be updated from your dashboard so your training records stay accurate.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How are training recommendations chosen?</summary>
+        <p>An AI model matches your role, department, and stated needs against the training catalog and real institutional demand data, so suggestions are specific to you rather than a generic list.</p>
       </details>
     </div>
 
@@ -2018,14 +2067,14 @@ $roleNames = [
 
     <div class="dossier-card mb-6">
       <p style="color:var(--ink); line-height:1.65;">
-        The <strong style="color:var(--royal);">LSPU Training Tracker System</strong> was developed by a dedicated student from the <em>Bachelor of Science in Information Technology (BSIT)</em> program at the <strong style="color:var(--royal);">College of Computer Studies, Laguna State Polytechnic University – Los Baños Campus</strong>.
+        The <strong style="color:var(--royal);">LSPU Training Tracker System</strong> was built in two stages by two students from the <em>Bachelor of Science in Information Technology (BSIT)</em> program at the <strong style="color:var(--royal);">College of Computer Studies, Laguna State Polytechnic University – Los Baños Campus</strong>: the original record-keeping system, and a later expansion that added its AI-powered recommendation and training-demand pipeline.
       </p>
     </div>
 
     <div class="stat-strip mb-8">
       <div class="stat">
-        <span class="stat-num">1</span>
-        <span class="stat-label">Developer</span>
+        <span class="stat-num">2</span>
+        <span class="stat-label">Developers</span>
       </div>
       <div class="stat">
         <span class="stat-num">3</span>
@@ -2042,18 +2091,33 @@ $roleNames = [
     </div>
 
     <span class="eyebrow mb-3">Leadership</span>
-    <h3 class="section-heading" style="margin-top:6px;">Project Lead</h3>
+    <h3 class="section-heading" style="margin-top:6px;">Development Team</h3>
 
-    <div class="dossier-card mb-8" style="max-width:100%;">
-      <div class="flex flex-col items-center text-center">
-        <div class="advisor-avatar" style="width:76px; height:76px; font-size:1.6rem; background:linear-gradient(135deg,#1A4B8C,#0F3460);">
-          <i class="ri-code-box-fill"></i>
+    <div class="team-grid mb-8">
+      <div class="dossier-card" style="max-width:100%;">
+        <div class="flex flex-col items-center text-center">
+          <div class="advisor-avatar" style="width:76px; height:76px; font-size:1.6rem; background:linear-gradient(135deg,#1A4B8C,#0F3460);">
+            <i class="ri-code-box-fill"></i>
+          </div>
+          <h4 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; color:var(--ink);">Gian Carlo I. Maranan</h4>
+          <p style="color:var(--royal); font-weight:600; font-size:0.85rem; margin-top:2px;">Founding Developer</p>
+          <p style="color:var(--ink-soft); font-size:0.85rem; margin-top:10px; line-height:1.5;">
+            Designed and built the original LSPU-LBC Training Tracker System — the core training documentation, record-keeping, and account-management platform — from initial concept to deployment.
+          </p>
         </div>
-        <h4 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; color:var(--ink);">Gian Maranan</h4>
-        <p style="color:var(--royal); font-weight:600; font-size:0.85rem; margin-top:2px;">Lead Developer & System Architect</p>
-        <p style="color:var(--ink-soft); font-size:0.85rem; margin-top:10px; line-height:1.5;">
-          Sole developer responsible for designing and implementing the entire LSPU-LBC Training Tracker System, from initial concept to final deployment.
-        </p>
+      </div>
+
+      <div class="dossier-card" style="max-width:100%;">
+        <div class="flex flex-col items-center text-center">
+          <div class="advisor-avatar" style="width:76px; height:76px; font-size:1.6rem; background:linear-gradient(135deg,#0D6B4D,#084A34);">
+            <i class="ri-brain-line"></i>
+          </div>
+          <h4 style="font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; color:var(--ink);">Sean John R. Looc</h4>
+          <p style="color:var(--forest); font-weight:600; font-size:0.85rem; margin-top:2px;">AI &amp; Systems Integration Developer</p>
+          <p style="color:var(--ink-soft); font-size:0.85rem; margin-top:10px; line-height:1.5;">
+            Extended the system with its AI-powered capabilities: the XGBoost + SBERT training recommendation engine, the HR Training Demand pipeline, Reports &amp; Analytics, and the Audit Log.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -2102,9 +2166,11 @@ $roleNames = [
       <span class="tech-chip"><i class="ri-code-s-slash-line"></i> PHP</span>
       <span class="tech-chip"><i class="ri-database-2-line"></i> MySQL</span>
       <span class="tech-chip"><i class="ri-tailwind-css-line"></i> Tailwind CSS</span>
-      <span class="tech-chip"><i class="ri-javascript-line"></i> jQuery UI</span>
       <span class="tech-chip"><i class="ri-shape-2-line"></i> Animate.css</span>
-      <span class="tech-chip"><i class="ri-sparkling-2-line"></i> particles.js</span>
+      <span class="tech-chip"><i class="ri-flashlight-line"></i> FastAPI</span>
+      <span class="tech-chip"><i class="ri-braces-line"></i> Python</span>
+      <span class="tech-chip"><i class="ri-node-tree"></i> XGBoost</span>
+      <span class="tech-chip"><i class="ri-chat-quote-line"></i> Sentence-BERT</span>
     </div>
 
     <h3 class="section-heading">Project Development</h3>
@@ -2120,6 +2186,10 @@ $roleNames = [
       <div class="step-row">
         <div class="step-num"><i class="ri-bug-line" style="font-size:0.85rem;"></i></div>
         <div><h5>Testing and Refinement</h5><p>Performed rigorous testing to ensure reliability and user satisfaction.</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-num"><i class="ri-brain-line" style="font-size:0.85rem;"></i></div>
+        <div><h5>AI &amp; Pipeline Expansion</h5><p>Added the AI recommendation engine and the HR Training Demand pipeline, Reports &amp; Analytics, and Audit Log on top of the original system.</p></div>
       </div>
       <div class="step-row">
         <div class="step-num"><i class="ri-checkbox-circle-line" style="font-size:0.85rem;"></i></div>
@@ -2142,16 +2212,7 @@ $roleNames = [
       <!-- Logo / Seal -->
       <div class="logo-wrapper" aria-hidden="true">
         <svg class="seal-ring" viewBox="0 0 200 200">
-          <defs>
-            <path id="sealCirclePath" d="M100,100 m-90,0 a90,90 0 1,1 180,0 a90,90 0 1,1 -180,0" />
-          </defs>
-          <circle cx="100" cy="100" r="97" fill="none" stroke="var(--gold)" stroke-width="1.4" opacity="0.55"/>
-          <circle cx="100" cy="100" r="90" fill="none" stroke="var(--gold)" stroke-width="1" stroke-dasharray="1.5 4.5" opacity="0.75"/>
-          <text font-size="8.6" letter-spacing="2.6" fill="var(--gold)">
-            <textPath href="#sealCirclePath" startOffset="0%">
-              LAGUNA STATE POLYTECHNIC UNIVERSITY • LOS BAÑOS CAMPUS • TRAINING TRACKER •
-            </textPath>
-          </text>
+          <circle cx="100" cy="100" r="97" fill="none" stroke="var(--gold)" stroke-width="1.4" opacity="0.4"/>
         </svg>
         <div class="logo-circle">
           <img src="images/lspu-logo.png" alt="LSPU Logo">
@@ -2174,7 +2235,7 @@ $roleNames = [
 
             <div id="mainButtons" class="space-y-2.5">
               <!-- LOGIN BUTTON - PINAKAMALAKI -->
-              <button id="loginBtn" type="button" class="btn-login w-full flex items-center justify-center btn-pulse" onclick="showForm('loginForm', 'slide-right')">
+              <button id="loginBtn" type="button" class="btn-login w-full flex items-center justify-center" onclick="showForm('loginForm', 'slide-right')">
                 <span class="w-5 h-5 flex items-center justify-center mr-2">
                   <i class="ri-login-circle-line"></i>
                 </span>
@@ -2244,26 +2305,34 @@ $roleNames = [
                   <div class="role-grid">
                     <div class="role-card" onclick="showRoleForm('user')" id="role-user-card">
                       <div class="role-icon-chip" style="background:linear-gradient(135deg,#1A4B8C,#0F3460);"><i class="ri-user-line"></i></div>
-                      <h3>Faculty Member</h3>
-                      <p>Regular faculty account</p>
+                      <div class="role-card-text">
+                        <h3>Faculty Member</h3>
+                        <p>Regular faculty account</p>
+                      </div>
                     </div>
 
                     <div class="role-card" onclick="showRoleForm('non_teaching')" id="role-nonteaching-card">
                       <div class="role-icon-chip" style="background:linear-gradient(135deg,#D4A843,#B8922A);"><i class="ri-user-settings-line"></i></div>
-                      <h3>Non-Teaching</h3>
-                      <p>Admin & support staff</p>
+                      <div class="role-card-text">
+                        <h3>Non-Teaching</h3>
+                        <p>Admin &amp; support staff</p>
+                      </div>
                     </div>
 
                     <div class="role-card" onclick="showRoleForm('admin')" id="role-admin-card">
                       <div class="role-icon-chip" style="background:linear-gradient(135deg,#0D6B4D,#084A34);"><i class="ri-admin-line"></i></div>
-                      <h3>HR Administrator</h3>
-                      <p>Human Resource admin</p>
+                      <div class="role-card-text">
+                        <h3>HR Administrator</h3>
+                        <p>Human Resource admin</p>
+                      </div>
                     </div>
 
                     <div class="role-card" onclick="showRoleForm('dean')" id="role-dean-card">
                       <div class="role-icon-chip" style="background:linear-gradient(135deg,#5B7288,#37485C);"><i class="ri-building-line"></i></div>
-                      <h3>College Dean</h3>
-                      <p>Dept-level admin</p>
+                      <div class="role-card-text">
+                        <h3>College Dean</h3>
+                        <p>Dept-level admin</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2278,7 +2347,7 @@ $roleNames = [
                     <form action="process_registration.php" method="POST" class="space-y-2.5 compact-form">
                       <input type="hidden" name="role" value="user">
 
-                      <p class="font-medium text-gray-700" style="margin-bottom:2px;">Full Name</p>
+                      <p class="name-section-label">Full Name</p>
                       <div class="name-fields-row">
                         <div class="col-span-1">
                           <label for="userFirstName" class="block font-medium text-gray-700">First Name</label>
@@ -2384,7 +2453,7 @@ $roleNames = [
                     <form action="process_registration.php" method="POST" class="space-y-2.5 compact-form">
                       <input type="hidden" name="role" value="admin">
 
-                      <p class="font-medium text-gray-700" style="margin-bottom:2px;">Full Name</p>
+                      <p class="name-section-label">Full Name</p>
                       <div class="name-fields-row">
                         <div class="col-span-1">
                           <label for="adminFirstName" class="block font-medium text-gray-700">First Name</label>
@@ -2442,7 +2511,7 @@ $roleNames = [
                     <form action="process_registration.php" method="POST" class="space-y-2.5 compact-form">
                       <input type="hidden" name="role" value="dean">
 
-                      <p class="font-medium text-gray-700" style="margin-bottom:2px;">Full Name</p>
+                      <p class="name-section-label">Full Name</p>
                       <div class="name-fields-row">
                         <div class="col-span-1">
                           <label for="deanFirstName" class="block font-medium text-gray-700">First Name</label>
@@ -2491,7 +2560,7 @@ $roleNames = [
                     <form action="process_registration.php" method="POST" class="space-y-2.5 compact-form">
                       <input type="hidden" name="role" value="non_teaching">
 
-                      <p class="font-medium text-gray-700" style="margin-bottom:2px;">Full Name</p>
+                      <p class="name-section-label">Full Name</p>
                       <div class="name-fields-row">
                         <div class="col-span-1">
                           <label for="nonTeachingFirstName" class="block font-medium text-gray-700">First Name</label>
@@ -2774,7 +2843,7 @@ $roleNames = [
   <div class="footer-content">
     <p>
       © 2025 Laguna State Polytechnic University Los Baños Campus. All rights reserved. <br>
-      Created by <strong>Gian Maranan</strong>. Learn more
+      Developed by <strong>Gian Carlo I. Maranan</strong> &amp; <strong>Sean John R. Looc</strong>. Learn more
       <span onclick="openPanel('left')" role="button" tabindex="0" class="cursor-pointer hover:underline focus:outline-none transition-colors">
         about the system
       </span>
@@ -2991,7 +3060,26 @@ $roleNames = [
           scale = Math.min(heightScale, widthScale, 1.35);
         }
         if (scale !== 1) {
-          transform = `scale(${scale})`;
+          // 2026-09-16 fix - real, reported bug: role forms (bigger than
+          // Login, so they often scale up slightly via the "fill extra
+          // space" branch above) rendered visibly off-center, sitting
+          // high with dead space below. Root cause: `transform-origin:
+          // top center` (declared on .fit-container, load-bearing for
+          // the overflow-guard math below, which assumes a top-anchored
+          // scale - not changed here) means scale() grows/shrinks the
+          // box from its TOP edge only. Flexbox already centered the
+          // UNSCALED box; growing/shrinking purely downward from that
+          // fixed top edge then eats into (or adds to) the bottom margin
+          // only, leaving the top margin untouched - the box drifts off
+          // center by exactly half the size change. Shifting up by half
+          // the height delta makes the visible growth/shrink symmetric
+          // around the original center instead, without touching
+          // transform-origin itself (the overflow guard right below
+          // measures the REAL rendered position after this shift, so it
+          // still self-corrects if this pushes anything off-screen).
+          const heightDelta = contentHeight * (scale - 1);
+          const centeringShift = -heightDelta / 2;
+          transform = `translateY(${centeringShift}px) scale(${scale})`;
         }
         fitContainer.style.transform = transform;
 
@@ -3207,47 +3295,6 @@ $roleNames = [
       setTimeout(fitToViewport, 60);
       setTimeout(fitToViewport, 350);
     };
-
-    if (document.getElementById('particles-js')) {
-      particlesJS('particles-js', {
-        particles: {
-          number: { value: 70, density: { enable: true, value_area: 850 } },
-          color: { value: '#D4A843' },
-          shape: { type: 'circle' },
-          opacity: { value: 0.45, random: false },
-          size: { value: 3, random: true },
-          line_linked: {
-            enable: true,
-            distance: 150,
-            color: '#1A4B8C',
-            opacity: 0.28,
-            width: 1
-          },
-          move: {
-            enable: true,
-            speed: 2.4,
-            direction: 'none',
-            random: false,
-            straight: false,
-            out_mode: 'bounce',
-            bounce: true
-          }
-        },
-        interactivity: {
-          detect_on: 'canvas',
-          events: {
-            onhover: { enable: true, mode: 'grab' },
-            onclick: { enable: true, mode: 'push' },
-            resize: true
-          },
-          modes: {
-            grab: { distance: 140, line_linked: { opacity: 0.8 } },
-            push: { particles_nb: 4 }
-          }
-        },
-        retina_detect: true
-      });
-    }
   });
 </script>
 

@@ -24,9 +24,12 @@ $demandId = intval($_GET['id']);
 $demandStmt = $con->prepare("SELECT d.id, d.title, d.found_training_title, d.description, d.training_type, d.pipeline_status, d.budget_hint,
     d.found_training_details, d.found_provider, d.found_cost, d.is_free, d.found_dates, d.found_start_time, d.found_end_time,
     d.found_capacity, d.found_venue, d.actual_modality, d.found_notes, d.found_updated_at,
-    fb.name AS found_by_name, fb.role AS found_by_role, fb.department AS found_by_department
+    d.cancellation_reason, d.cancelled_at,
+    fb.name AS found_by_name, fb.role AS found_by_role, fb.department AS found_by_department,
+    cb.name AS cancelled_by_name, cb.role AS cancelled_by_role
     FROM training_demand d
     LEFT JOIN users fb ON fb.id = d.found_by_user_id
+    LEFT JOIN users cb ON cb.id = d.cancelled_by_user_id
     WHERE d.id = ?");
 $demandStmt->bind_param("i", $demandId);
 $demandStmt->execute();
@@ -42,6 +45,7 @@ $badgeClasses = [
     'Pending HR Review' => 'badge-pending',
     'Forwarded to Dean' => 'badge-info',
     'Training Found'    => 'badge-on-time',
+    'No Training Found' => 'badge-declined',
     'HR Approved'       => 'badge-accepted',
     'Confirmed'         => 'badge-accepted',
     'Training Completed' => 'badge-on-time',
@@ -54,7 +58,7 @@ $requestersStmt = $con->prepare("
            tr.proof_certificate_path, tr.proof_approval_letter_path, tr.proof_program_path, tr.proof_hours
     FROM training_recommendations tr
     JOIN users u ON u.id = tr.user_id
-    WHERE tr.demand_id = ? AND tr.status IN ('Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected')
+    WHERE tr.demand_id = ? AND tr.status IN ('Accepted', 'Training Available', 'Confirmed', 'Completed', 'Not Selected', 'Cancelled')
     ORDER BY tr.updated_at DESC
 ");
 $requestersStmt->bind_param("i", $demandId);
@@ -71,6 +75,7 @@ $result = $requestersStmt->get_result();
 // hiding them.
 $requesters = [];
 $notSelected = [];
+$cancelled = [];
 $rawDepartments = [];
 while ($row = $result->fetch_assoc()) {
     $rawDepartments[] = $row['department'];
@@ -88,6 +93,14 @@ while ($row = $result->fetch_assoc()) {
     ];
     if ($row['status'] === 'Not Selected') {
         $notSelected[] = $entry;
+    } elseif ($row['status'] === 'Cancelled') {
+        // 2026-09-15 - same "don't mix into the active table" reasoning as
+        // Not Selected above, but a distinct bucket: these people didn't
+        // lose out on a spot, the whole demand was closed as
+        // 'No Training Found' (see reject_training_demand.php) - a
+        // different enough story that folding them into Not Selected's
+        // list would misrepresent why they're no longer active.
+        $cancelled[] = $entry;
     } else {
         $requesters[] = $entry;
     }
@@ -112,4 +125,4 @@ if (!empty($collegeCodes)) {
     $deanCheckStmt->close();
 }
 
-echo json_encode(['success' => true, 'demand' => $demand, 'requesters' => $requesters, 'not_selected' => $notSelected, 'has_dean' => $hasDean]);
+echo json_encode(['success' => true, 'demand' => $demand, 'requesters' => $requesters, 'not_selected' => $notSelected, 'cancelled' => $cancelled, 'has_dean' => $hasDean]);

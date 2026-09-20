@@ -43,6 +43,12 @@ if ($userRole !== 'admin') {
 require_once 'ml_recommendations.php';
 ensureTrainingRecommendationsTable($con);
 
+// Top 10 most-requested trainings, computed live from real submitted demand
+// (training_demand.requester_count) rather than a static document snapshot -
+// see getTopRequestedTrainings() for why. Moved here from
+// training_pipeline.php 2026-09-21: it's a reporting view, not an action item.
+$topRequestedTrainings = getTopRequestedTrainings($con, 10);
+
 $pendingUsers = $con->query("SELECT id FROM users WHERE status = 'pending'");
 $pendingCount = $pendingUsers ? $pendingUsers->num_rows : 0;
 
@@ -54,12 +60,12 @@ $trainingStatsQuery = $con->query("
     SELECT u.teaching_status, tr.status, COUNT(*) AS c
     FROM training_recommendations tr
     JOIN users u ON u.id = tr.user_id
-    WHERE tr.status IN ('Completed', 'Confirmed', 'Accepted', 'Training Available', 'Not Selected')
+    WHERE tr.status IN ('Completed', 'Confirmed', 'Accepted', 'Training Available', 'Not Selected', 'Cancelled')
     GROUP BY u.teaching_status, tr.status
 ");
 $trainingDemographics = [
-    'Teaching'    => ['completed' => 0, 'confirmed' => 0, 'pending' => 0, 'not_selected' => 0],
-    'Non-Teaching' => ['completed' => 0, 'confirmed' => 0, 'pending' => 0, 'not_selected' => 0],
+    'Teaching'    => ['completed' => 0, 'confirmed' => 0, 'pending' => 0, 'not_selected' => 0, 'cancelled' => 0],
+    'Non-Teaching' => ['completed' => 0, 'confirmed' => 0, 'pending' => 0, 'not_selected' => 0, 'cancelled' => 0],
 ];
 if ($trainingStatsQuery) {
     while ($row = $trainingStatsQuery->fetch_assoc()) {
@@ -69,6 +75,10 @@ if ($trainingStatsQuery) {
             'Confirmed' => 'confirmed',
             'Accepted', 'Training Available' => 'pending',
             'Not Selected' => 'not_selected',
+            // 2026-09-15 - a demand-level "No Training Found" outcome
+            // (see reject_training_demand.php), distinct from Not
+            // Selected (a training existed, this person wasn't picked).
+            'Cancelled' => 'cancelled',
             default => null,
         };
         if ($statusKey) {
@@ -81,8 +91,9 @@ $trainingDemoTotals = [
     'confirmed' => $trainingDemographics['Teaching']['confirmed'] + $trainingDemographics['Non-Teaching']['confirmed'],
     'pending' => $trainingDemographics['Teaching']['pending'] + $trainingDemographics['Non-Teaching']['pending'],
     'not_selected' => $trainingDemographics['Teaching']['not_selected'] + $trainingDemographics['Non-Teaching']['not_selected'],
+    'cancelled' => $trainingDemographics['Teaching']['cancelled'] + $trainingDemographics['Non-Teaching']['cancelled'],
 ];
-$trainingResolvedPool = $trainingDemoTotals['completed'] + $trainingDemoTotals['confirmed'] + $trainingDemoTotals['not_selected'];
+$trainingResolvedPool = $trainingDemoTotals['completed'] + $trainingDemoTotals['confirmed'] + $trainingDemoTotals['not_selected'] + $trainingDemoTotals['cancelled'];
 $trainingCompletionRate = $trainingResolvedPool > 0 ? round(($trainingDemoTotals['completed'] / $trainingResolvedPool) * 100) : null;
 
 $collegeStatsQuery = $con->query("
@@ -839,6 +850,12 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
        19. GRID HELPERS + RESPONSIVE
        ---------------------------------------------------------- */
     .grid-stats    { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.15rem; margin-bottom: 1.4rem; }
+    /* 2026-09-15 - same tile layout as .grid-stats, just 5 columns wide -
+       the Training Demographics section grew a 5th tile (Cancelled, see
+       reject_training_demand.php) and .grid-stats itself is reused
+       elsewhere on this page at 4, so this is a sibling class rather than
+       widening the shared one. */
+    .grid-stats-5  { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.15rem; margin-bottom: 1.4rem; }
     .grid-actions  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.15rem; margin-bottom: 1.4rem; }
     .grid-teaching { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.15rem; margin-bottom: 1.4rem; }
     .grid-main     { display: grid; grid-template-columns: 1fr 1.85fr; gap: 1.15rem; align-items: start; }
@@ -846,9 +863,11 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
 
     @media (max-width: 1200px) {
       .grid-stats { grid-template-columns: repeat(2, 1fr); }
+      .grid-stats-5 { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 1024px) {
       .grid-actions, .grid-main, .grid-teaching { grid-template-columns: 1fr; }
+      .grid-stats-5 { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 900px) {
       /* Collapse the shell to a single column; rail becomes an off-canvas drawer. */
@@ -864,11 +883,13 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
     }
     @media (max-width: 640px) {
       .grid-stats { grid-template-columns: 1fr 1fr; }
+      .grid-stats-5 { grid-template-columns: 1fr 1fr; }
       .avatar-meta { display: none; }
       .page-head h2 { font-size: 1.3rem; }
     }
     @media (max-width: 420px) {
       .grid-stats { grid-template-columns: 1fr; }
+      .grid-stats-5 { grid-template-columns: 1fr; }
     }
 
     /* ----------------------------------------------------------
@@ -1067,9 +1088,9 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
           </div>
           <div class="card-body">
             <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
-              Every employee currently in the training pipeline, by outcome. Completion rate is Completed ÷ (Completed + Confirmed + Not Selected) - people still Pending haven't had a chance to resolve either way yet, so they're not counted against it.
+              Every employee currently in the training pipeline, by outcome. Completion rate is Completed ÷ (Completed + Confirmed + Not Selected + Cancelled) - people still Pending haven't had a chance to resolve either way yet, so they're not counted against it.
             </p>
-            <section class="grid-stats" style="margin-bottom:1.15rem;">
+            <section class="grid-stats-5" style="margin-bottom:1.15rem;">
               <div class="card hoverable">
                 <div class="card-body">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
@@ -1130,6 +1151,21 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
                   </div>
                 </div>
               </div>
+              <div class="card hoverable">
+                <div class="card-body">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;">
+                    <div>
+                      <p class="stat-label">Cancelled</p>
+                      <h3 class="stat-value num" style="color:var(--ink);"><?= $trainingDemoTotals['cancelled'] ?></h3>
+                    </div>
+                    <div class="stat-ico ico-rose"><i class="ri-close-circle-line"></i></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;">
+                    <span class="badge badge-declined" style="justify-content:center;">Teaching: <span class="num"><?= $trainingDemographics['Teaching']['cancelled'] ?></span></span>
+                    <span class="badge badge-declined" style="justify-content:center;">Non-Teach: <span class="num"><?= $trainingDemographics['Non-Teaching']['cancelled'] ?></span></span>
+                  </div>
+                </div>
+              </div>
             </section>
             <?php if (!empty($trainingByCollege)): ?>
               <div class="table-wrap">
@@ -1152,6 +1188,49 @@ $monthlyTotal = array_sum($monthlyTeaching) + array_sum($monthlyNonTeaching);
             <?php endif; ?>
           </div>
         </section>
+
+        <?php if (!empty($topRequestedTrainings)): ?>
+        <!-- ===========================================================
+             TOP REQUESTED TRAININGS — live leaderboard computed from
+             actual submitted demand (training_demand.requester_count),
+             not a static document. See getTopRequestedTrainings() in
+             ml_recommendations.php.
+             =========================================================== -->
+        <section class="card" style="margin-top:1.15rem;">
+          <div class="card-head">
+            <h3><i class="ri-trophy-line"></i> Top <?= count($topRequestedTrainings) ?> Most Requested Trainings</h3>
+          </div>
+          <div class="card-body">
+            <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
+              Ranked by how many employees across all colleges have accepted or requested each one so far — updates automatically as more people submit.
+            </p>
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th style="width:3rem;">#</th>
+                    <th>Training / Idea</th>
+                    <th class="num">Requesters</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($topRequestedTrainings as $i => $item): ?>
+                    <tr>
+                      <td>
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:1.6rem;height:1.6rem;border-radius:999px;background:var(--gold-soft,#F5E6C8);color:#8C6423;font-size:0.78rem;font-weight:700;"><?= $i + 1 ?></span>
+                      </td>
+                      <td><?= htmlspecialchars(demandDisplayTitle($item)) ?></td>
+                      <td class="num"><?= (int)$item['requester_count'] ?></td>
+                      <td><span class="badge <?= demandStatusBadgeClass($item['pipeline_status']) ?>"><?= htmlspecialchars(demandStatusLabel($item['pipeline_status'])) ?></span></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <?php endif; ?>
 
         <!-- ===========================================================
              MONTHLY TRAINING ANALYTICS (2026-09-02, per the adviser) —

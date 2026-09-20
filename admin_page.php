@@ -78,7 +78,13 @@ $departments = [
     'CCJE'  => 'College of Criminal Justice Education',
     'CCS'   => 'College of Computer Studies',
     'CFND'  => 'College of Food Nutrition and Dietetics',
-    'CHMT'  => 'College of Hospitality and Tourism Management',
+    // 2026-09-17 fix - code stays 'CHMT' (matches the real dean account's
+    // department/role and every role-derivation site that builds
+    // 'admin_' . strtolower($code) - renaming the code itself risks
+    // breaking that dean's access). Only the label was wrong: the
+    // college's real name/acronym is CIHTM (International Hospitality
+    // and Tourism Management), not this.
+    'CHMT'  => 'College of International Hospitality and Tourism Management (CIHTM)',
     'CIT'   => 'College of Industrial Technology',
     'COE'   => 'College of Engineering',
     'COF'   => 'College of Fisheries',
@@ -228,7 +234,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors         = [];
 
             // Preferred path: PHPMailer is available → email + DB notification.
-            if (class_exists('PHPMailer')) {
+            // 2026-09-14 fix - was class_exists('PHPMailer'), a bare
+            // global-namespace check that's always false for the real,
+            // namespaced PHPMailer\PHPMailer\PHPMailer class (confirmed
+            // directly: class_exists('PHPMailer') === false even with the
+            // library correctly installed and loaded). This silently sent
+            // this whole block down the "no mailer" fallback path every
+            // time, regardless of whether PHPMailer was actually available.
+            // 2026-09-21 - also gated on EMAIL_NOTIFICATIONS_ENABLED (config.php);
+            // when off this takes the DB-notification-only branch below.
+            if (EMAIL_NOTIFICATIONS_ENABLED && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+                // 2026-09-14 fix - reusing $mail across the loop below
+                // (clearAddresses()/addAddress() per user) looked like
+                // connection reuse but wasn't: without SMTPKeepAlive,
+                // PHPMailer closes and fully reconnects (TCP + TLS + Gmail
+                // auth) after every single send(). Confirmed live via the
+                // user's own manual test: with ~14 accepted users this blew
+                // through PHP's 120s max_execution_time and fatal-errored
+                // the whole request mid-loop - some users got emailed,
+                // others silently didn't, with no way to tell who from the
+                // crashed page. SMTPKeepAlive + a raised time limit fixes
+                // both the crash and most of the per-recipient delay.
+                set_time_limit(600);
                 $mail = new PHPMailer(true);
                 try {
                     $mail->isSMTP();
@@ -238,6 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mail->Password   = $SMTP_PASS;
                     $mail->SMTPSecure = $SMTP_SECURE;
                     $mail->Port       = $SMTP_PORT;
+                    $mail->SMTPKeepAlive = true;
 
                     $mail->setFrom($SMTP_USER, $SMTP_FROM_NAME);
                     $mail->Subject = "New Training Needs Assessment Deadline";
@@ -271,6 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $errors[] = "Error sending to {$user['email']}: " . $e->getMessage();
                         }
                     }
+                    $mail->smtpClose(); // release the kept-alive connection now that the fan-out is done
 
                     $_SESSION['deadline_message'] .= " Notifications sent to $dbNotifications users.";
                 } catch (Exception $e) {
@@ -391,7 +420,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['userActionType'] = "success";
 
                 // Best-effort approval email (failures are swallowed silently).
-                if (class_exists('PHPMailer')) {
+                // 2026-09-14 fix - same class_exists() namespace bug as above.
+                // 2026-09-21 - gated on EMAIL_NOTIFICATIONS_ENABLED (config.php).
+                if (EMAIL_NOTIFICATIONS_ENABLED && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
                     try {
                         $mail = new PHPMailer(true);
                         $mail->isSMTP();
@@ -576,15 +607,19 @@ $noSubmission     = array_fill_keys(array_keys($departments), 0);
 $departmentTotals = array_fill_keys(array_keys($departments), 0);
 
 if ($submissionDeadline && isset($activeDeadline['id'])) {
-    // These two queries build their IN(...) list by raw string
-    // interpolation (pre-existing convention in this file - college codes
-    // never needed escaping). $nonTeachingOfficeAliases includes
-    // "Registrar's Office", whose apostrophe WOULD break that string
-    // interpolation unescaped, so escape the merged list once here.
-    $deptStatsInList = array_map(
-        fn($d) => $con->real_escape_string($d),
-        array_merge(array_keys($departments), $nonTeachingOfficeAliases)
-    );
+    // 2026-09-17 fix - real bug found via the department chart showing 0
+    // for CHMT despite 2 real submissions: both queries used to filter by
+    // an exact-match `department IN (...)` list built from $departments'
+    // canonical codes + $nonTeachingOfficeAliases. Any account whose
+    // department is stored as a variant not literally in that list -
+    // e.g. 'CIHTM' instead of 'CHMT', the college's own dean account's
+    // value - was excluded from the query entirely, not just miscounted.
+    // Now fetches every accepted employee regardless of their department
+    // string, and classifies each one in PHP via canonicalTnaCollegeCode()
+    // (the same normalization already used for the department filter
+    // dropdown above and throughout ml_recommendations.php), so any
+    // recognized variant of a college name or non-teaching office lands
+    // in the right bucket instead of silently vanishing.
 
     // Total accepted users per department.
     // role = 'user' added 2026-09-02 - without it, any dean/admin account
@@ -597,36 +632,34 @@ if ($submissionDeadline && isset($activeDeadline['id'])) {
         FROM users
         WHERE status = 'accepted'
         AND role = 'user'
-        AND department IN ('" . implode("','", $deptStatsInList) . "')
+        AND department IS NOT NULL AND department != ''
         GROUP BY department
     ");
 
     while ($row = $deptTotalQuery->fetch_assoc()) {
-        // Roll a specific non-teaching office up into the ADMIN bucket -
-        // see $nonTeachingOfficeAliases above.
-        $dept = in_array($row['department'], $nonTeachingOfficeAliases, true) ? 'ADMIN' : $row['department'];
-        if (array_key_exists($dept, $departments)) {
+        $dept = canonicalTnaCollegeCode($row['department']);
+        if ($dept !== null && array_key_exists($dept, $departments)) {
             $departmentTotals[$dept] += (int)$row['total'];
         }
     }
 
     // Submission status per user, bucketed by department.
     $sql = "
-        SELECT 
+        SELECT
             u.department,
-            CASE 
+            CASE
                 WHEN a.id IS NULL THEN 'No Submission'
                 WHEN a.submission_date <= ? THEN 'On Time'
                 ELSE 'Late'
             END AS submission_status,
             COUNT(DISTINCT u.id) AS count
-        FROM 
+        FROM
             users u
-        LEFT JOIN 
+        LEFT JOIN
             assessments a ON u.id = a.user_id AND a.deadline_id = ?
-        WHERE u.department IN ('" . implode("','", $deptStatsInList) . "')
-        AND u.status = 'accepted'
+        WHERE u.status = 'accepted'
         AND u.role = 'user'
+        AND u.department IS NOT NULL AND u.department != ''
         GROUP BY
             u.department, submission_status
     ";
@@ -638,12 +671,11 @@ if ($submissionDeadline && isset($activeDeadline['id'])) {
 
     if ($result) {
         while ($row = $result->fetch_assoc()) {
-            // Roll a specific non-teaching office up into the ADMIN bucket -
-            // see $nonTeachingOfficeAliases above. +=, not =: with the office
-            // aliases folded in, more than one raw department value can now
-            // land on the same bucket for a given submission_status.
-            $dept = in_array($row['department'], $nonTeachingOfficeAliases, true) ? 'ADMIN' : $row['department'];
-            if (array_key_exists($dept, $departments)) {
+            // +=, not =: with normalization folded in, more than one raw
+            // department value can now land on the same canonical bucket
+            // for a given submission_status.
+            $dept = canonicalTnaCollegeCode($row['department']);
+            if ($dept !== null && array_key_exists($dept, $departments)) {
                 switch ($row['submission_status']) {
                     case 'On Time':      $onTime[$dept]       += (int)$row['count']; break;
                     case 'Late':         $late[$dept]         += (int)$row['count']; break;
@@ -793,9 +825,34 @@ function roleLabel(string $role, ?string $teachingStatus = null): string {
 }
 
 /** Resolve a department code to its full name (falls back to the raw value). */
-function deptLabel(?string $code, array $map): string {
+// 2026-09-17 fix - real bug found via the Manage Users department filter:
+// this used to check whether the RAW stored users.department value was
+// itself a literal key in $map (only true for the handful of accounts
+// that happen to have a bare short code like 'CA' saved). Every raw
+// full-name variant - "College of Food Nutrition and Dietetics" vs
+// "College of Food, Nutrition and Dietetics", 'CIHTM' vs 'CHMT', etc. -
+// fell through and was returned completely unchanged, so the filter
+// dropdown and every user table row showed whatever exact string
+// happened to be typed/selected at registration instead of one
+// consistent display name, and near-duplicate colleges showed up as
+// separate-looking entries. Colleges canonicalize to ONE shared name
+// (they're true duplicates of each other). Non-teaching offices do NOT -
+// canonicalTnaCollegeCode() blends all of them into one 'ADMIN' code for
+// TNA-routing purposes, but that's wrong here: 5 real staff who typed
+// their own office into "Other, please specify" were all showing as the
+// same generic "Main Administrative Office" instead of their actual
+// office - a real loss of information. Those resolve through
+// canonicalNonTeachingOfficeName() instead, which only merges true
+// legacy-spelling variants of the SAME office, keeping distinct offices
+// distinct.
+function deptLabel(?string $rawDepartment, array $map): string {
+    if ($rawDepartment === null || $rawDepartment === '') return 'N/A';
+    $code = canonicalTnaCollegeCode($rawDepartment);
+    if ($code === 'ADMIN') {
+        return canonicalNonTeachingOfficeName($rawDepartment) ?? $rawDepartment;
+    }
     if ($code !== null && isset($map[$code])) return $map[$code];
-    return $code !== null && $code !== '' ? $code : 'N/A';
+    return $rawDepartment;
 }
 
 /** Percentage helper used by the submission progress bars. */
@@ -855,6 +912,10 @@ function pct(int $part, int $whole): float {
          20. Motion preferences
        =========================================================== -->
   <style>
+    /* 2026-09-14 - used by the "Sending notifications..." spinner icon
+       on the Set Deadline button/overlay (see initDeadlineForm()). */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
     /* ----------------------------------------------------------
        1. TOKENS
        ---------------------------------------------------------- */
@@ -2764,6 +2825,41 @@ function initDeadlineForm() {
       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
     preview.style.display = 'block';
+  });
+
+  // 2026-09-14 — this is a plain full-page form POST, not AJAX: once
+  // submit fires, the browser keeps the current page painted on screen
+  // (just showing its own loading spinner in the tab) until the response
+  // comes back. That means an overlay shown here, synchronously in the
+  // submit handler, stays visible for the whole wait - which matters now
+  // that setting an active deadline actually emails every accepted user
+  // (previously silently broken - see notification_email.php) and can
+  // take upwards of 30-60+ seconds depending on how many accepted users
+  // exist. Without this, HR has no way to tell "still sending" apart from
+  // "the page is stuck."
+  const form = document.getElementById('deadlineForm');
+  const activeToggle = document.getElementById('is_active');
+  form.addEventListener('submit', () => {
+    if (submit.disabled) return;
+    submit.disabled = true;
+    const willEmail = activeToggle && activeToggle.checked;
+    submit.innerHTML = willEmail
+      ? '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite;"></i> Sending notifications…'
+      : '<i class="ri-loader-4-line" style="animation:spin 1s linear infinite;"></i> Saving…';
+
+    if (willEmail) {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:2rem 2.25rem;max-width:360px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+          <i class="ri-mail-send-line" style="font-size:2.2rem;color:var(--accent);"></i>
+          <h3 style="margin:0.75rem 0 0.4rem;font-size:1.05rem;">Sending notifications…</h3>
+          <p style="margin:0;color:var(--muted,#666);font-size:0.9rem;line-height:1.45;">
+            Emailing every accepted user about the new deadline. This can take up to a minute or two depending on how many accounts there are — please don't close this tab.
+          </p>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
   });
 }
 
