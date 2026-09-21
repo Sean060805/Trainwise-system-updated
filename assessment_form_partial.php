@@ -345,8 +345,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const diffMs = endTime - startTime;
-    const minutes = Math.floor(diffMs / 60000);
+    // 2026-09-21 - tester feedback: a standard 8:00 AM - 5:00 PM day was being
+    // reported as 9 hours, but nobody counts the lunch hour as training time
+    // - it's 8 hours. When a session spans the whole 12:00-1:00 PM lunch
+    // window AND has time outside it, that hour is excluded. Only a full span
+    // is trimmed, so a session that merely touches noon (12:30-5:00 PM) is
+    // left alone and a session that IS the lunch hour is never reduced to 0.
+    const LUNCH_START = 12 * 60;
+    const LUNCH_END = 13 * 60;
+    const startMin = startTime.getHours() * 60 + startTime.getMinutes();
+    const endMin = endTime.getHours() * 60 + endTime.getMinutes();
+    let minutes = endMin - startMin;
+    if (startMin <= LUNCH_START && endMin >= LUNCH_END && minutes > (LUNCH_END - LUNCH_START)) {
+      minutes -= (LUNCH_END - LUNCH_START);
+    }
     const perDay = formatDuration(minutes);
 
     // 2026-09-03 - a multi-day training reports its per-day hours plus
@@ -579,6 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  readonly
                  class="duration tna-input tna-input-readonly w-full rounded-md px-3 py-2 text-sm"
                  placeholder="Auto-calculated" />
+          <p class="text-xs mt-1" style="color:var(--slate,#5B7288);">Excludes the 12:00 - 1:00 PM lunch break.</p>
         </div>
       </div>
 

@@ -712,6 +712,7 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
 
         <div class="space-y-3">
           <!-- Profile Completion -->
+          <?php if ($profileCompletionPercentage < 100): /* 2026-09-21 tester feedback: a permanent "100%" bar is noise - show profile progress only while it is incomplete */ ?>
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-3">
@@ -726,6 +727,7 @@ $showAssessmentButton = $hasProfile && $hasDeadline && !$hasSubmitted;
               </div>
             </div>
           </div>
+          <?php endif; ?>
 
           <!-- Assessment Status -->
           <div class="flex items-center justify-between">
@@ -1690,28 +1692,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   updateEmptyFieldHighlights();
 
-  if (focusField) {
-    const focusFieldIdMap = {
-      name: 'first_name',
-      educationalAttainment: 'educationalAttainment',
-      specialization: 'specialization',
-      designation: 'designationSelect',
-      department: 'departmentSelect',
-      yearsInLSPU: 'yearsInLSPU',
-      teaching_status: 'teaching_status'
-    };
-    const targetEl = document.getElementById(focusFieldIdMap[focusField] || '');
-    if (targetEl) {
-      // groupEmptyFieldsBelow() may have already relocated this field's
-      // wrapper into #needsInputGrid - querying by id still finds it
-      // wherever it now lives, so ordering here doesn't matter. Small
-      // delay lets that reflow (and the edit-mode toggle above) settle
-      // before scrolling, so the target position is stable.
-      setTimeout(() => {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetEl.focus({ preventScroll: true });
-      }, 50);
-    }
+  const focusFieldIdMap = {
+    name: 'first_name',
+    educationalAttainment: 'educationalAttainment',
+    specialization: 'specialization',
+    designation: 'designationSelect',
+    department: 'departmentSelect',
+    yearsInLSPU: 'yearsInLSPU',
+    teaching_status: 'teaching_status'
+  };
+
+  // 2026-09-21 - tester feedback: clicking "Complete Profile" on a brand-new
+  // account still dropped the user at the top of this page to scroll down
+  // for the empty fields. The per-field ?focus= links above already did the
+  // right thing; a plain visit to an INCOMPLETE profile now behaves the same
+  // way and lands on the first empty required field (in the same order as
+  // focusFieldIdMap). That covers every entry point - the dashboard button,
+  // the recommendations page, the sidebar - without editing each link. An
+  // explicit ?focus= still wins.
+  let focusTargetId = focusField ? focusFieldIdMap[focusField] : null;
+  if (!focusTargetId && !profileIsComplete) {
+    focusTargetId = Object.values(focusFieldIdMap).find(id => {
+      const el = document.getElementById(id);
+      return el && !String(el.value || '').trim();
+    }) || null;
+  }
+
+  const targetEl = focusTargetId ? document.getElementById(focusTargetId) : null;
+  if (targetEl) {
+    // groupEmptyFieldsBelow() may have already relocated this field's
+    // wrapper into #needsInputGrid - querying by id still finds it
+    // wherever it now lives, so ordering here doesn't matter. Small
+    // delay lets that reflow (and the edit-mode toggle above) settle
+    // before scrolling, so the target position is stable.
+    setTimeout(() => {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetEl.focus({ preventScroll: true });
+    }, 50);
   }
 });
 

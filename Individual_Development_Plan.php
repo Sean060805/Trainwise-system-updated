@@ -1328,6 +1328,7 @@ body {
 
         <div class="space-y-3">
           <!-- Profile Completion -->
+          <?php if ($profileCompletionPercentage < 100): /* 2026-09-21 tester feedback: a permanent "100%" bar is noise - show profile progress only while it is incomplete */ ?>
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mr-3">
@@ -1342,6 +1343,7 @@ body {
               </div>
             </div>
           </div>
+          <?php endif; ?>
 
           <!-- Assessment Status -->
           <div class="flex items-center justify-between">
